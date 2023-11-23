@@ -1,0 +1,34 @@
+version: 0.1
+log:
+  level: error
+  fields:
+    service: registry
+storage:
+  cache:
+    blobdescriptor: inmemory
+    blobdescriptorsize: 500
+  filesystem:
+    rootdirectory: /var/lib/docker-registry
+    maxthreads: 30
+  maintenance:
+    uploadpurging:
+      enabled: true
+      age: 47h
+      interval: 24h
+      dryrun: false
+http:
+  addr: :5000
+  headers:
+    X-Content-Type-Options: [nosniff]
+health:
+  storagedriver:
+    enabled: true
+    interval: 10s
+    threshold: 3
+auth:
+  htpasswd:
+    realm: basic-realm
+    path: /htpasswd
+reporting:
+  newrelic:
+    verbose: false

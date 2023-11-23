@@ -1,0 +1,9 @@
+{
+    "yaml.schemas": {
+        "file:///Users/luiz.fonseca/.vscode/extensions/atlassian.atlascode-2.10.12/resources/schemas/pipelines-schema.json": "bitbucket-pipelines.yml",
+        "https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json": [
+            "file:///Users/luizfonseca/Projects/swarm-paas-stack/main.yml",
+            "file:///Users/luizfonseca/Projects/swarm-paas-stack/files/main.yml"
+        ]
+    }
+}

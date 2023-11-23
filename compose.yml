@@ -1,0 +1,213 @@
+version: "3.6"
+
+# docker network create --driver=overlay --attachable public
+# docker network create --driver=overlay --attachable agent_network
+# docker network create --driver=overlay --attachable grafana
+
+networks:
+  public:
+    external: true
+  agent_network:
+    external: true
+  grafana:
+    external: true
+
+configs:
+  loki_config_v10:
+    file: ./files/loki-config.yaml
+  vector_config_v18:
+    file: ./files/vector-config.yaml
+  registry_config:
+    file: ./files/docker-registry.yaml
+
+services:
+  traefik:
+    image: "traefik:latest"
+    command:
+      - --accesslog=true
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entryPoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.http.tls.certresolver=leresolver
+      - --providers.docker=true
+      - --providers.docker.swarmMode=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=public
+      - --api=true
+      - --api.dashboard=true
+      - --log.level=INFO
+      - --certificatesresolvers.leresolver.acme.httpchallenge=true
+      - --certificatesresolvers.leresolver.acme.email=runeroniek@gmail.com #Set your email address here, is for the generation of SSL certificates with Let's Encrypt. 
+      - --certificatesresolvers.leresolver.acme.storage=./acme.json
+      - --certificatesresolvers.leresolver.acme.httpchallenge.entrypoint=web
+      # Uncomment the following line if you want to use the staging Let's Encrypt server before using the production one.
+      - --certificatesresolvers.leresolver.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory
+
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        # Makes traefik accessible from outside the swarm
+        - "traefik.enable=true"
+        - "traefik.http.routers.traefik.rule=Host(`traefik.local.tld`)"
+        - "traefik.http.routers.traefik.service=api@internal"
+        - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+
+        # Middleware redirect
+
+        # # Ensure traefik is protected by basic auth
+        # - "traefik.http.routers.traefik.middlewares=authtraefik"
+        # - "traefik.http.middlewares.authtraefik.basicauth.users=admin:password" # user/password
+    networks:
+      - public
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - ./files/acme.json:/acme.json"
+
+  portainer-agent:
+    image: portainer/agent:latest
+    environment:
+      # REQUIRED: Should be equal to the service name prefixed by "tasks." when
+      # deployed inside an overlay network
+      AGENT_CLUSTER_ADDR: tasks.portainer-agent
+      # AGENT_PORT: 9001
+      # LOG_LEVEL: debug
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
+    networks:
+      - agent_network
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.platform.os == linux]
+
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    command: -H tcp://tasks.portainer-agent:9001 --tlsskipverify
+    networks:
+      - public
+      - agent_network
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        # Frontend
+        - "traefik.enable=true"
+        - "traefik.http.routers.frontend.rule=Host(`portainer.local.tld`)"
+        - "traefik.http.routers.frontend.entrypoints=websecure"
+        - "traefik.http.services.frontend.loadbalancer.server.port=9000"
+
+        # Ensure portainer is protected by basic auth
+        # - "traefik.http.routers.frontend.middlewares=authtraefik"
+        # - "traefik.http.middlewares.authtraefik.basicauth.users=admin:password" # user/password
+
+        # Edge
+        # - "traefik.http.routers.edge.rule=Host(`edge.yourdomain.com`)"
+        # - "traefik.http.routers.edge.entrypoints=websecure"
+        # - "traefik.http.services.edge.loadbalancer.server.port=8000"
+        # - "traefik.http.routers.edge.service=edge"
+        # - "traefik.http.routers.edge.tls.certresolver=leresolver"
+
+    # ports:
+    #   - "9000:9000"
+   
+  vector:
+    image: "timberio/vector:latest-distroless-libc"
+    networks:
+      - grafana
+    labels:
+      - "traefik.enable=false"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - vector-data:/etc/vector
+      - /var/log:/var/log:ro
+    environment:
+      - VECTOR_CONFIG=/etc/vector/vector.yaml
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    configs:
+      - source: vector_config_v18
+        target: /etc/vector/vector.yaml
+
+
+  docker-registry:
+    image: registry:latest
+    networks:
+      - public
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.registry.rule=Host(`registry.local.tld`)"
+        - "traefik.http.routers.registry.entrypoints=websecure"
+        - "traefik.http.routers.registry.tls.certresolver=leresolver"
+        - "traefik.http.services.registry.loadbalancer.server.port=5000"
+    volumes:
+      - registry-data:/var/lib/docker-registry
+    configs:
+      - source: registry_config
+        target: /var/lib/registry/config.yml
+
+
+  loki:
+    image: grafana/loki:latest
+    command:
+     - -config.file=/etc/loki/loki-config.yaml
+    volumes:
+      - loki-data:/etc/loki
+    networks:
+      - public
+      - grafana
+    configs:
+     - source: loki_config_v10
+       target: /etc/loki/loki-config.yaml
+    logging:
+      driver: json-file
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.loki.rule=Host(`loki.local.tld`)"
+        - "traefik.http.routers.loki.entrypoints=websecure"
+        - "traefik.http.routers.loki.tls.certresolver=leresolver"
+        - "traefik.http.services.loki.loadbalancer.server.port=3001"
+
+
+  grafana:
+    image: grafana/grafana:latest
+    # ports:
+    #   - "3000:3000"
+    networks:
+      - public
+      - grafana
+    volumes:
+      - grafana-data:/var/lib/grafana
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.grafana.rule=Host(`grafana.local.tld`)"
+        - "traefik.http.routers.grafana.entrypoints=websecure"
+        - "traefik.http.routers.grafana.tls.certresolver=leresolver"
+        - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+    logging:
+      driver: json-file
+
+volumes:
+  portainer_data:
+  loki-data:
+  grafana-data:
+  registry-data:
+  vector-data:
+  traefik-data:
