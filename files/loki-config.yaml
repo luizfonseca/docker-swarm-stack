@@ -3,6 +3,7 @@ auth_enabled: false
 
 server:
   http_listen_port: 3100
+  grpc_server_max_recv_msg_size: 50485760 # 50MB
 
 common:
   path_prefix: /etc/loki
@@ -18,12 +19,13 @@ common:
 
 frontend:
   address: 0.0.0.0
-  max_outstanding_per_tenant: 100
+  max_outstanding_per_tenant: 1024
+  max_body_size: 50485760 # 50MB
 
 # https://grafana.com/docs/loki/latest/operations/storage/schema/
 schema_config:
   configs:
-    - from: 2023-10-24
+    - from: 2023-10-01
       store: tsdb
       object_store: filesystem
       schema: v12
@@ -59,6 +61,9 @@ compactor:
 
 limits_config:
   retention_period: 768h # 32 days
+  per_stream_rate_limit: 10MB
+  ingestion_rate_mb: 80
+  ingestion_burst_size_mb: 140
   # retention_stream:
   #   - selector: '{agent="vector"}'
   #     priority: 1

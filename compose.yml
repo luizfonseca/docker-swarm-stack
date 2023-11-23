@@ -3,7 +3,7 @@ version: "3.6"
 # docker network create --driver=overlay --attachable public
 # docker network create --driver=overlay --attachable agent_network
 # docker network create --driver=overlay --attachable grafana
-
+# https://doc.traefik.io/traefik/routing/providers/docker/#configuration-examples
 networks:
   public:
     external: true
@@ -13,18 +13,19 @@ networks:
     external: true
 
 configs:
-  loki_config_v10:
+  loki_config:
     file: ./files/loki-config.yaml
-  vector_config_v18:
-    file: ./files/vector-config.yaml
   registry_config:
     file: ./files/docker-registry.yaml
+  promtail_config:
+    file: ./files/promtail-config.yaml
 
 services:
   traefik:
     image: "traefik:latest"
     command:
       - --accesslog=true
+      - --accesslog.format=json
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
       - --entrypoints.web.http.redirections.entrypoint.to=websecure
@@ -68,6 +69,11 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - ./files/acme.json:/acme.json"
+    logging: &logConfig
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   portainer-agent:
     image: portainer/agent:latest
@@ -86,7 +92,7 @@ services:
       mode: global
       placement:
         constraints: [node.platform.os == linux]
-
+    logging: *logConfig
 
   portainer:
     image: portainer/portainer-ce:latest
@@ -97,6 +103,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
+    logging: *logConfig
     deploy:
       mode: replicated
       replicas: 1
@@ -114,33 +121,23 @@ services:
         # - "traefik.http.routers.frontend.middlewares=authtraefik"
         # - "traefik.http.middlewares.authtraefik.basicauth.users=admin:password" # user/password
 
-        # Edge
-        # - "traefik.http.routers.edge.rule=Host(`edge.yourdomain.com`)"
-        # - "traefik.http.routers.edge.entrypoints=websecure"
-        # - "traefik.http.services.edge.loadbalancer.server.port=8000"
-        # - "traefik.http.routers.edge.service=edge"
-        # - "traefik.http.routers.edge.tls.certresolver=leresolver"
-
-    # ports:
-    #   - "9000:9000"
-   
-  vector:
-    image: "timberio/vector:latest-distroless-libc"
+  promtail:
+    image: grafana/promtail:latest
     networks:
       - grafana
-    labels:
-      - "traefik.enable=false"
+    command: 
+      - -config.file=/etc/promtail/promtail.yaml
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - vector-data:/etc/vector
       - /var/log:/var/log:ro
-    environment:
-      - VECTOR_CONFIG=/etc/vector/vector.yaml
-      - DOCKER_HOST=unix:///var/run/docker.sock
     configs:
-      - source: vector_config_v18
-        target: /etc/vector/vector.yaml
-
+      - source: promtail_config
+        target: /etc/promtail/promtail.yaml
+    logging: *logConfig
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=false"
 
   docker-registry:
     image: registry:latest
@@ -158,26 +155,27 @@ services:
     configs:
       - source: registry_config
         target: /var/lib/registry/config.yml
+    logging: *logConfig
 
 
   loki:
     image: grafana/loki:latest
     command:
-     - -config.file=/etc/loki/loki-config.yaml
+     - -config.file=/etc/loki/loki-config.yaml # https://grafana.com/docs/loki/latest/configure/#limits_config
     volumes:
       - loki-data:/etc/loki
     networks:
       - public
       - grafana
     configs:
-     - source: loki_config_v10
+     - source: loki_config
        target: /etc/loki/loki-config.yaml
-    logging:
-      driver: json-file
+    logging: *logConfig
     deploy:
       replicas: 1
       labels:
         - "traefik.enable=true"
+        - "traefik.docker.network=public" 
         - "traefik.http.routers.loki.rule=Host(`loki.local.tld`)"
         - "traefik.http.routers.loki.entrypoints=websecure"
         - "traefik.http.routers.loki.tls.certresolver=leresolver"
@@ -201,13 +199,11 @@ services:
         - "traefik.http.routers.grafana.entrypoints=websecure"
         - "traefik.http.routers.grafana.tls.certresolver=leresolver"
         - "traefik.http.services.grafana.loadbalancer.server.port=3000"
-    logging:
-      driver: json-file
+    logging: *logConfig
 
 volumes:
   portainer_data:
   loki-data:
   grafana-data:
   registry-data:
-  vector-data:
   traefik-data:
