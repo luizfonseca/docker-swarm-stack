@@ -1,0 +1,93 @@
+
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+
+  docker_stats:
+    collection_interval: 15s
+    container_labels_to_metric_labels:
+      com.docker.swarm.service.name: service
+      com.docker.swarm.node.id: node_id
+      com.docker.swarm.service.id: service_id
+      com.docker.swarm.task.name: job
+      com.docker.stack.namespace: stack_namespace
+
+    # env_vars_to_metric_labels:
+    # excluded_images:
+    metrics:
+      container.cpu.usage.total:
+        enabled: true
+      container.cpu.throttling_data.periods:
+        enabled: true
+      container.cpu.throttling_data.throttled_periods:
+        enabled: true
+      container.cpu.utilization:
+        enabled: true
+      container.memory.usage.limit:
+        enabled: true
+      container.memory.usage.total:
+        enabled: true
+      container.memory.percent:
+        enabled: true
+      container.blockio.io_service_bytes_recursive:
+        enabled: true
+      container.network.io.usage.rx_bytes:
+        enabled: true
+      container.network.io.usage.tx_bytes:
+        enabled: true
+      container.network.io.usage.rx_dropped:
+        enabled: true
+      container.network.io.usage.tx_dropped:
+        enabled: true
+      container.network.io.usage.rx_errors:
+        enabled: true
+      container.network.io.usage.tx_errors:
+        enabled: true
+      container.network.io.usage.rx_packets:
+        enabled: true
+      container.network.io.usage.tx_packets:
+        enabled: true
+      container.pids.count:
+        enabled: true
+
+processors:
+  batch:
+    timeout: 10s
+  resource:
+    attributes:
+      - key: host.id
+        from_attribute: host.name
+        action: insert
+
+exporters:
+  prometheusremotewrite:
+    timeout: "5s"
+    namespace: otel
+    endpoint: http://prometheus:9090/api/v1/write
+    write_buffer_size: 524288
+    add_metric_suffixes: true
+    resource_to_telemetry_conversion:
+      enabled: true
+      
+  # otlp:
+  #   endpoint: tasks.otel-collector:9445
+    # tls:
+    #   insecure: true
+
+# resource and resource-detection processors allow decorating the metrics with host attributes  
+service:
+  pipelines:
+    # logs:
+    #   receivers: []
+    #   processors: [batch]
+    #   exporters: [loki]
+    # traces:
+    #   receivers: [otlp]
+    #   processors: [batch]
+    #   exporters: []
+    metrics:
+      receivers: [otlp, docker_stats]
+      processors: [batch, resource]
+      exporters: [prometheusremotewrite]

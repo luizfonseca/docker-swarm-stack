@@ -1,0 +1,64 @@
+version: "3.6"
+
+x-default-logging: &x-default-logging
+  options:
+    max-size: "12m"
+    max-file: "5"
+  driver: json-file
+
+networks:
+  public:
+    external: true
+  agent_network:
+    external: true
+
+services:
+  portainer-agent:
+    image: portainer/agent:latest
+    environment:
+      # REQUIRED: Should be equal to the service name prefixed by "tasks." when
+      # deployed inside an overlay network
+      AGENT_CLUSTER_ADDR: tasks.portainer-agent
+      # AGENT_PORT: 9001
+      # LOG_LEVEL: debug
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
+    networks:
+      - agent_network
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.platform.os == linux]
+    logging: *x-default-logging
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    command: -H tcp://tasks.portainer-agent:9001 --tlsskipverify
+    networks:
+      - public
+      - agent_network
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer-data:/data
+    logging: *x-default-logging
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        # Frontend
+        - "traefik.enable=true"
+        - "traefik.docker.lbswarm=true" # Load balances through the swarm 
+        - "traefik.http.routers.frontend.rule=Host(`portainer.local.tld`)"
+        - "traefik.http.routers.frontend.entrypoints=websecure"
+        - "traefik.http.services.frontend.loadbalancer.server.port=9000"
+
+        # Ensure portainer is protected by basic auth
+        # - "traefik.http.routers.frontend.middlewares=authtraefik"
+        # - "traefik.http.middlewares.authtraefik.basicauth.users=admin:password" # user/password
+
+volumes:
+  portainer-data:

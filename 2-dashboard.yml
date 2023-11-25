@@ -1,0 +1,41 @@
+version: "3.6"
+
+x-default-logging: &x-default-logging
+  options:
+    max-size: "12m"
+    max-file: "5"
+  driver: json-file
+
+networks:
+  public:
+    external: true
+  monitoring:
+    external: true
+    name: monitoring
+    attachable: true
+
+services:
+  grafana:
+    image: grafana/grafana:latest
+    networks:
+      - public
+      - monitoring
+    volumes:
+      - grafana-data:/var/lib/grafana
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.lbswarm=true" # Load balances through the swarm 
+        - "traefik.http.routers.grafana.rule=Host(`grafana.local.tld`)"
+        - "traefik.http.routers.grafana.entrypoints=websecure"
+        - "traefik.http.routers.grafana.tls.certresolver=leresolver"
+        - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      placement:
+        constraints:
+          - node.role == manager
+    logging: *x-default-logging
+
+
+volumes:
+  grafana-data:

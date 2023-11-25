@@ -1,0 +1,42 @@
+global:
+  scrape_interval:     25s
+  evaluation_interval: 25s
+  external_labels:
+    monitor: 'docker-stack'
+
+rule_files:
+  - alert.rules
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets:
+        - localhost:9090
+
+  - job_name: traefik
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+        - traefik:8082
+  
+  - job_name: otel-collector
+    metrics_path: /metrics
+    dns_sd_configs:
+      - names:
+          - "tasks.otel-collector"
+        type: "A"
+        port: 9444
+
+  - job_name: node-exporter
+    dns_sd_configs:
+      - names:
+          - "tasks.node-exporter"
+        type: "A"
+        port: 9100
+
+  - job_name: tempo
+    dns_sd_configs:
+      - names:
+          - "tasks.tempo"
+        type: "A"
+        port: 3200

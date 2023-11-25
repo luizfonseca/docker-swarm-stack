@@ -1,0 +1,91 @@
+version: "3.6"
+
+x-deploy: &x-deploy-default
+  mode: global
+  update_config:
+    parallelism: 1
+    delay: 30s
+    order: stop-first
+    failure_action: rollback
+  restart_policy:
+    condition: on-failure
+    delay: 30s
+    max_attempts: 3
+    window: 120s
+
+
+x-default-logging: &x-default-logging
+  options:
+    max-size: "12m"
+    max-file: "5"
+  driver: json-file
+
+
+networks:
+  monitoring:
+    external: true
+    name: monitoring
+    attachable: true
+  public:
+    external: true
+    name: public
+    attachable: true
+  traefik-metrics:
+    external: true
+
+configs:
+  tempo_config:
+    file: ./configs/tempo.yaml
+  prometheus_config:
+    file: ./configs/prometheus.yaml
+  prometheus_rules:
+    file: ./configs/alert.rules
+
+services:
+  tempo:
+    image: grafana/tempo:latest
+    networks:
+      - monitoring
+      - traefik-metrics
+    configs:
+      - source: tempo_config
+        target: /etc/tempo.yaml
+    command: 
+      # - -target=scalable-single-binary
+      - -config.file=/etc/tempo.yaml
+    volumes:
+      - tempo-data:/tmp/tempo
+    # ports: (ports are not exposed publicly)
+      # - "14268:14268"  # jaeger ingest
+    #   - "3200:3200"   # tempo
+    #   - "9095:9095" # tempo grpc
+    #   - "4317:4317"  # otlp grpc
+    #   - "4318:4318"  # otlp http
+      # - "9411:9411"   # zipkin
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    logging: *x-default-logging
+    deploy: *x-deploy-default
+
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - --web.enable-remote-write-receiver
+      - --enable-feature=remote-write-receiver
+      - --config.file=/etc/prometheus/prometheus.yml
+    configs:
+      - source: prometheus_config
+        target: /etc/prometheus/prometheus.yml
+      - source: prometheus_rules
+        target: /etc/prometheus/alert.rules
+    networks:
+      - monitoring
+      - traefik-metrics
+    volumes:
+      - prometheus-data:/prometheus
+    logging: *x-default-logging
+    deploy: *x-deploy-default
+
+volumes:
+  tempo-data:
+  prometheus-data:

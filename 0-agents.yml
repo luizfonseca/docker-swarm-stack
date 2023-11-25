@@ -1,0 +1,70 @@
+version: "3.6"
+
+x-deploy-policy: &x-deploy-policy
+  mode: global
+  resources:
+    limits:
+      memory: 128M
+    reservations:
+      memory: 64M
+
+x-default-logging: &x-default-logging
+  options:
+    max-size: "12m"
+    max-file: "5"
+  driver: json-file
+
+networks:
+  monitoring:
+    name: monitoring
+    external: true
+    attachable: true
+
+configs:
+  nodeexporter_entrypoint:
+    file: configs/node-exporter-entrypoint.sh
+  otel_config:
+    file: configs/otel-collector.yaml
+
+services:
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    environment:
+      NODE_ID: "${NODE_ID:-{{.Node.ID}}}"
+      NODE_NAME: "${NODE_NAME:-{{.Node.Hostname}}}"
+    configs:
+      - source: nodeexporter_entrypoint
+        target: /docker-entrypoint.sh
+    command:
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--path.rootfs=/rootfs'
+      - '--no-collector.ipvs'
+    networks:
+      - monitoring
+    volumes:
+      - /:/rootfs:ro,rslave
+    entrypoint:
+      - /bin/sh
+      - /docker-entrypoint.sh
+    deploy: *x-deploy-policy
+    logging: *x-default-logging
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.89.0
+    configs:
+      - source: otel_config
+        target: /etc/otel-collector-config.yaml
+    command:
+      - --config=/etc/otel-collector-config.yaml
+    volumes:
+      - /var/run/docker.sock.raw:/var/run/docker.sock
+    networks:
+      - monitoring
+    # ports:
+    #   - "4317:4317"
+    #   - "55679:55679"
+    logging: *x-default-logging
+    deploy: 
+      <<: *x-deploy-policy
+      placement:
+        constraints: [node.platform.os == linux]

@@ -7,9 +7,11 @@ The stack is composed of the following services:
 - [Traefik](https://traefik.io/) as a reverse proxy
 - [Portainer](https://www.portainer.io/) as a docker management UI (and service deployment)
 - [Docker Registry](https://hub.docker.com/_/registry) to host your **own** docker images and trigger deployments through Github Actions etc.
-- Grafana to monitor the server's resources and logging
-- Loki to collect logs from all the services
-- Vector to act as a log sink for Loki and send logs to Grafana (or other places you define)
+- [Grafana](https://grafana.com/docs/grafana/latest/setup-grafana/installation/docker/) to monitor the server's resources and logging
+- [Loki](https://grafana.com/docs/loki/latest/get-started/overview/) to collect logs from all the services
+- [Promtail](https://grafana.com/docs/loki/latest/send-data/promtail/installation/) to act as a log sink for Loki and send logs to Grafana (or other places you define)
+- NodeExporter for host metrics (node and manager)
+- [Prometheus](https://prometheus.io/docs/prometheus/latest/installation/) to collect metrics from all the services
 
 
 ## Requirements
@@ -47,9 +49,3 @@ docker swarm init
 
 3. Run the following command to start the stack:
 
-```bash
-./oshc.sh --domain <YOUR_DOMAIN> --email <YOUR_EMAIL> \ 
-    --registry-username <REGISTRY_USERNAME> --registry-password <REGISTRY_PASSWORD> \
-
-
-```

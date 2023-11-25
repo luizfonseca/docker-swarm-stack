@@ -1,0 +1,40 @@
+version: "3.6"
+x-default-logging: &x-default-logging
+  options:
+    max-size: "12m"
+    max-file: "5"
+  driver: json-file
+
+configs:
+  registry_config:
+    file: ./configs/registry.yaml
+
+networks:
+  public:
+    external: true
+    name: public
+    attachable: true
+
+services:
+  docker-registry:
+    image: registry:latest
+    networks:
+      - public
+    deploy:
+      mode: global
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.registry.rule=Host(`registry.local.tld`)"
+        - "traefik.http.routers.registry.entrypoints=websecure"
+        - "traefik.http.routers.registry.tls.certresolver=leresolver"
+        - "traefik.http.services.registry.loadbalancer.server.port=5000"
+    volumes:
+      - registry-data:/var/lib/docker-registry
+    configs:
+      - source: registry_config
+        target: /var/lib/registry/config.yml
+    logging: *x-default-logging
+
+
+volumes:
+  registry-data:

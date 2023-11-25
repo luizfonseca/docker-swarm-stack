@@ -1,0 +1,66 @@
+version: "3.6"
+
+x-default-logging: &x-default-logging
+  options:
+    max-size: "12m"
+    max-file: "5"
+  driver: json-file
+
+x-deploy-default: &x-deploy-default
+  replicas: 1
+  update_config:
+    parallelism: 1
+    delay: 30s
+    order: stop-first
+    failure_action: rollback
+  restart_policy:
+    condition: on-failure
+    delay: 30s
+    max_attempts: 3
+    window: 120s
+
+configs:
+  loki_config:
+    file: ./configs/loki.yaml
+  promtail_config:
+    file: ./configs/promtail.yaml
+
+networks:
+  monitoring:
+    external: true
+    name: monitoring
+    attachable: true
+
+services:
+  loki:
+    image: grafana/loki:latest
+    command:
+     - -config.file=/etc/loki/loki-config.yaml # https://grafana.com/docs/loki/latest/configure/#limits_config
+    volumes:
+      - loki-data:/etc/loki
+    networks:
+      - monitoring
+    configs:
+     - source: loki_config
+       target: /etc/loki/loki-config.yaml
+    logging: *x-default-logging
+    deploy: *x-deploy-default
+
+  promtail:
+    image: grafana/promtail:latest
+    networks:
+      - monitoring
+    command: 
+      - -config.file=/etc/promtail/promtail.yaml
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/log:/var/log:ro
+    configs:
+      - source: promtail_config
+        target: /etc/promtail/promtail.yaml
+    logging: *x-default-logging
+    deploy: *x-deploy-default
+
+
+volumes:
+  loki-data:
