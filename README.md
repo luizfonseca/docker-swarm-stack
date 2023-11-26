@@ -1,8 +1,23 @@
+- [OLC (One-Line _Self-Hosting_ Command)](#olc-one-line-self-hosting-command)
+  - [Description](#description)
+  - [Requirements](#requirements)
+      - [A server with a public IP address.](#a-server-with-a-public-ip-address)
+      - [A domain name](#a-domain-name)
+      - [A DNS provider that supports ACME (Let's Encrypt)](#a-dns-provider-that-supports-acme-lets-encrypt)
+      - [Docker and docker-compose installed on the server](#docker-and-docker-compose-installed-on-the-server)
+  - [Usage](#usage)
+  - [Configuration](#configuration)
+  - [Running locally](#running-locally)
+  - [Github OAuth for protected services/routes](#github-oauth-for-protected-servicesroutes)
+  - [Cloudflare DNS](#cloudflare-dns)
+
+
 # OLC (One-Line _Self-Hosting_ Command)
 
 
 This repository is a collection of scripts and configuration files to setup a self-hosting stack on a single server (or multiple) using `docker swarm` as the main orchestrator with a simple one-line command.
 
+## Description
 The stack is composed of the following services:
 - [Traefik](https://traefik.io/) as a reverse proxy
 - [Portainer](https://www.portainer.io/) as a docker management UI (and service deployment)
@@ -50,10 +65,93 @@ docker swarm init
 - Make sure to update the `.env` file and then edit it with the correct values
 ```bash
 cp .env.example .env
-```
+```  
 
 - Run the following command to start the stack:
 ```bash
 make deploy
 ```
 
+
+## Configuration
+There isn't much to configure in this stack. However, you can change most of the configuration through the `.env` file. Here is a list of the variables you can change:
+
+```bash
+# The domain name you want to use for the stack. Locally you can use `localhost` or another name.
+# In production, you will need to point to the domain you bought/have.
+DOMAIN_NAME="example.com"
+
+# The email address you want to use for Let's Encrypt. It's required in order to enable HTTPS.
+DOMAIN_CONTACT="your-email@provider.com"
+
+# Often some might try to figure out your domains by inspecting your DNS records. 
+# This stack will generate "friendly" domain names for your services at first, such as `grafana.subdomain.your-domain.com` or `portainer.subdomain.your-domain.com`.
+# If you want to obfuscate it, you can toggle this to true and it will generate random domain names for your services. E.g. `grafana-0befad.your-domain.com`. Not required.
+RANDOM_DOMAIN_NAMES=false
+
+
+# You can protected some routes with an extra layer of authentication using Github OAuth.
+# Meaning, for someone to access it they need to login with Github & the account needs to be whitelisted by you. 
+# It's recommended to create a PRIVATE app organization or a new account app just for this purpose.
+GITHUB_OAUTH_CLIENT_ID="<value>"
+GITHUB_OAUTH_CLIENT_SECRET="<value>"
+
+# The Github username you want to whitelist for the protected routes.
+# Users not matching this username will receive a 404 error.
+GITHUB_USERNAME="<username>"
+```
+
+
+## Running locally
+
+The only difference between running locally and on a server is the `letsencrypt` configuration. We will be targetting the `staging` version of it.
+
+If you want to run it locally, you will need to update your `/etc/hosts` file with the following entry:
+
+```bash
+127.0.0.1       traefik.localhost portainer.localhost grafana.localhost registry.localhost gh-auth.localhost
+```
+
+Then, you can run the following command to start the stack:
+
+```bash
+docker swarm init
+make deploy
+```
+
+* HTTPs doesn't work locally since we are using a self-signed certificate. You can use `http://{serviceName}.localhost` to access the services, but you will need to accept the self-signed certificate warning.
+
+* Some services are not exposed since they don't offer much, but you can expose them by editing the `docker-compose.yml` file and adding the following to the service you want to expose:
+
+```yaml
+... # other configuration
+
+... deploy:
+        labels:
+            - "trafik.enable=true"
+            - "traefik.http.routers.<service_name>.rule=Host(`<service_name>.${DOMAIN_NAME:?err}`)"
+            - "traefik.http.routers.<service_name>.entrypoints=websecure"
+            - "traefik.http.routers.<service_name>.tls.certresolver=leresolver"
+            - "traefik.http.services.<service_name>.loadbalancer.server.port=<container-port>"
+```
+
+## Github OAuth for protected services/routes
+* You can also make this service require Github authentication by adding the following to the service in addition to the above:
+
+```yaml
+... # other configuration
+    deploy:
+        labels:
+            - "traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.apiBaseUrl=http://gh-oauth"
+            - "traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.whitelist.logins[0]=${GITHUB_USERNAME}"
+
+            # Attach GH middleware
+            - "traefik.http.routers.<service_name>.middlewares=oauth-proxy"
+```
+
+
+## Cloudflare DNS
+
+If for some reason you are using Cloudflare DNS with proxying enabled for your domains, you will need to disable the **proxy first** so that letsencrypt can validate the domain. You can do that by clicking on the orange cloud icon next to the domain name in the DNS management panel.
+
+After emitting the certificates, you can enable the proxy again.
