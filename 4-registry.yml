@@ -17,7 +17,7 @@ networks:
 
 services:
   docker-registry:
-    image: registry:latest
+    image: registry:2.8.3
     networks:
       - public
     deploy:

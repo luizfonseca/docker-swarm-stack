@@ -16,7 +16,7 @@ networks:
 
 services:
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:10.2.2
     networks:
       - public
       - monitoring
