@@ -52,13 +52,15 @@ services:
         # Frontend
         - "traefik.enable=true"
         - "traefik.docker.lbswarm=true" # Load balances through the swarm 
-        - "traefik.http.routers.frontend.rule=Host(`portainer.local.tld`)"
-        - "traefik.http.routers.frontend.entrypoints=websecure"
-        - "traefik.http.services.frontend.loadbalancer.server.port=9000"
+        - "traefik.http.routers.portainer.rule=Host(`portainer.${DOMAIN_NAME:?err}`)"
+        - "traefik.http.routers.portainer.entrypoints=websecure"
+        - "traefik.http.services.portainer.loadbalancer.server.port=9000"
 
-        # Ensure portainer is protected by basic auth
-        # - "traefik.http.routers.frontend.middlewares=authtraefik"
-        # - "traefik.http.middlewares.authtraefik.basicauth.users=admin:password" # user/password
+        # Portainer is behind a GH auth proxy
+        - "traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.apiBaseUrl=http://gh-oauth"
+        - "traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.whitelist.logins[0]=${GITHUB_USERNAME}"
 
+        # Attach GH middleware
+        - "traefik.http.routers.portainer.middlewares=oauth-proxy"
 volumes:
   portainer-data:

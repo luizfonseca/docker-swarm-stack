@@ -27,10 +27,17 @@ services:
       labels:
         - "traefik.enable=true"
         - "traefik.docker.lbswarm=true" # Load balances through the swarm 
-        - "traefik.http.routers.grafana.rule=Host(`grafana.local.tld`)"
+        - "traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN_NAME:-localhost}`)"
         - "traefik.http.routers.grafana.entrypoints=websecure"
         - "traefik.http.routers.grafana.tls.certresolver=leresolver"
+        
         - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+        - "traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.apiBaseUrl=http://gh-oauth"
+        - "traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.whitelist.logins[0]=${GITHUB_USERNAME}"
+
+        # Attach GH middleware
+        - "traefik.http.routers.grafana.middlewares=oauth-proxy"
       placement:
         constraints:
           - node.role == manager

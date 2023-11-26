@@ -1,10 +1,12 @@
+.SILENT:
+.PHONY: deploy
 deploy:
-	-@docker network create --scope swarm --driver=overlay --attachable public
-	-@docker network create --scope swarm --driver=overlay --attachable agent_network
-	-@docker network create --scope swarm --driver=overlay --attachable monitoring
-	-@docker network create --scope swarm --driver=overlay --attachable traefik-metrics
+	@-docker network create --scope swarm --driver=overlay --attachable public 2>/dev/null ||:
+	@-docker network create --scope swarm --driver=overlay --attachable agent_network 2>/dev/null ||:
+	@-docker network create --scope swarm --driver=overlay --attachable monitoring 2>/dev/null ||:
+	@-docker network create --scope swarm --driver=overlay --attachable traefik-metrics 2>/dev/null ||:
 
-	docker stack deploy -c compose.yml -c 0-agents.yml -c 1-logging.yml -c 2-dashboard.yml -c 3-tracing.yml -c 4-registry.yml -c 5-swarm-management.yml olc
+	./bin/deploy.sh
 
 destroy:
 	docker stack rm olc

@@ -72,8 +72,8 @@ services:
       - --metrics.prometheus.buckets=0.1,0.3,1.2,5.0
 
       # Plugins
-      - --experimental.plugins.scanblock.modulename=github.com/safing/scanblock
-      - --experimental.plugins.scanblock.version=v1.0.0
+      - --experimental.plugins.gh-oauth.modulename=github.com/MuXiu1997/traefik-github-oauth-plugin
+      - --experimental.plugins.gh-oauth.version=v0.3.1
 
       # Tracing
       - --tracing.zipkin=true
@@ -107,4 +107,21 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - ./configs/acme.json:/acme.json"
+    logging: *x-default-logging
+
+  
+  gh-oauth:
+    image: muxiu1997/traefik-github-oauth-server
+    environment:
+      GITHUB_OAUTH_CLIENT_ID: "${GITHUB_OAUTH_CLIENT_ID:-notSet}"
+      GITHUB_OAUTH_CLIENT_SECRET: "${GITHUB_OAUTH_CLIENT_SECRET:-notSet}"
+      API_BASE_URL: "https://gh-oauth.${DOMAIN_NAME:?err}"
+    networks:
+      - public
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.services.oauth-proxy.loadbalancer.server.port=80"
+        - "traefik.http.routers.oauth-proxy.rule=Host(`gh-oauth.${DOMAIN_NAME:?err}`)"
     logging: *x-default-logging

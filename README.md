@@ -40,12 +40,20 @@ If you are using `Ubuntu`, you can use the following link: https://docs.docker.c
 
 ## Usage
 
-1. Clone this repository on the server (or download)
-2. Make sure you have a swarm initialized on the server. If not, run the following command:
+- Clone this repository on the server (or download)
+- Make sure you have a swarm initialized on the server. If not, run the following command:
 
 ```bash
 docker swarm init
 ```
 
-3. Run the following command to start the stack:
+- Make sure to update the `.env` file and then edit it with the correct values
+```bash
+cp .env.example .env
+```
+
+- Run the following command to start the stack:
+```bash
+make deploy
+```
 
