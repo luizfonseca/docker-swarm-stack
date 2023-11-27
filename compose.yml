@@ -72,8 +72,8 @@ services:
       - --metrics.prometheus.buckets=0.1,0.3,1.2,5.0
 
       # Plugins
-      - --experimental.localPlugins.gh-oauth.modulename=github.com/luizfonseca/traefik-github-oauth-plugin
-      # - --experimental.plugins.gh-oauth.version=v0.6.0
+      - --experimental.plugins.gh-oauth.modulename=github.com/luizfonseca/traefik-github-oauth-plugin
+      - --experimental.plugins.gh-oauth.version=v0.3.1
 
       # Tracing
       - --tracing.zipkin=true
@@ -119,7 +119,7 @@ services:
 
   
   gh-oauth:
-    image: luizfonseca/traefik-github-oauth-server:0.6.0
+    image: luizfonseca/traefik-github-oauth-server:0.3.1
     environment:
       GITHUB_OAUTH_CLIENT_ID: "${GITHUB_OAUTH_CLIENT_ID:-notSet}"
       GITHUB_OAUTH_CLIENT_SECRET: "${GITHUB_OAUTH_CLIENT_SECRET:-notSet}"
