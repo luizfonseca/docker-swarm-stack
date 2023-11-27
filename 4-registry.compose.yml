@@ -31,7 +31,7 @@ services:
       mode: global
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.registry.rule=Host(`registry.${DOMAIN_NAME:?err}`)"
+        - "traefik.http.routers.registry.rule=Host(`registry${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}`)"
         - "traefik.http.routers.registry.entrypoints=websecure"
         - "traefik.http.routers.registry.tls.certresolver=leresolver"
         - "traefik.http.services.registry.loadbalancer.server.port=5000"

@@ -34,7 +34,7 @@ services:
       labels:
         - "traefik.enable=true"
         - "traefik.docker.lbswarm=true" # Load balances through the swarm 
-        - "traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN_NAME:-localhost}`)"
+        - "traefik.http.routers.grafana.rule=Host(`grafana${DOMAIN_SUFFIX}.${DOMAIN_NAME:-localhost}`)"
         - "traefik.http.routers.grafana.entrypoints=websecure"
         - "traefik.http.routers.grafana.tls.certresolver=leresolver"
         

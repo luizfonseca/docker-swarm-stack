@@ -123,7 +123,8 @@ services:
     environment:
       GITHUB_OAUTH_CLIENT_ID: "${GITHUB_OAUTH_CLIENT_ID:-notSet}"
       GITHUB_OAUTH_CLIENT_SECRET: "${GITHUB_OAUTH_CLIENT_SECRET:-notSet}"
-      API_BASE_URL: "https://gh-oauth.${DOMAIN_NAME:?err}"
+      # External URL
+      API_BASE_URL: "https://gh-oauth${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}"
     networks:
       - public
     deploy:
@@ -137,6 +138,10 @@ services:
           memory: 10M
       labels:
         - "traefik.enable=true"
+        - "traefik.http.routers.oauth-proxy.rule=Host(`gh-oauth${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}`)"
+        - "traefik.http.routers.oauth-proxy.entrypoints=websecure"
+        - "traefik.http.routers.oauth-proxy.tls.certresolver=leresolver"
+
+        # Container port/Service port
         - "traefik.http.services.oauth-proxy.loadbalancer.server.port=80"
-        - "traefik.http.routers.oauth-proxy.rule=Host(`gh-oauth.${DOMAIN_NAME:?err}`)"
     logging: *x-default-logging
