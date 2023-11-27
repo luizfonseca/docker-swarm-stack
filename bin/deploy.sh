@@ -12,4 +12,4 @@ echo "   DONE"
 echo ">> Deploying services"
 
 
-docker stack deploy -c compose.yml -c 0-agents.yml -c 1-logging.yml -c 2-dashboard.yml -c 3-tracing.yml -c 4-registry.yml -c 5-swarm-management.yml olc
+docker stack deploy -c main.compose.yml -c 0-agents.compose.yml -c 1-logging.compose.yml -c 2-dashboard.compose.yml -c 3-tracing.compose.yml -c 4-registry.compose.yml -c 5-swarm-management.compose.yml olc
