@@ -28,6 +28,13 @@ services:
       - agent_network
     deploy:
       mode: global
+      resources:
+        limits:
+          cpus: 0.5
+          memory: 64M
+        reservations:
+          cpus: 0.25
+          memory: 32M
       placement:
         constraints: [node.platform.os == linux]
     logging: *x-default-logging

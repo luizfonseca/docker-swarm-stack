@@ -23,6 +23,13 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
     deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 200M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
       replicas: 1
       labels:
         - "traefik.enable=true"

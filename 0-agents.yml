@@ -4,9 +4,11 @@ x-deploy-policy: &x-deploy-policy
   mode: global
   resources:
     limits:
+      cpus: 0.5
       memory: 128M
     reservations:
-      memory: 64M
+      cpus: 0.25
+      memory: 32M
 
 x-default-logging: &x-default-logging
   options:

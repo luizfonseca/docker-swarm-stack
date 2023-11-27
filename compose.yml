@@ -81,6 +81,13 @@ services:
       # - --tracing.jaeger.collector.endpoint=http://tasks.tempo:14268
       # - --tracing.jaeger.tracecontextheadername=traefik-trace-id
     deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 96M
+        reservations:
+          cpus: "0.1"
+          memory: 48M
       placement:
         constraints:
           - node.role == manager
@@ -121,6 +128,13 @@ services:
       - public
     deploy:
       replicas: 1
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 30M
+        reservations:
+          cpus: "0.1"
+          memory: 10M
       labels:
         - "traefik.enable=true"
         - "traefik.http.services.oauth-proxy.loadbalancer.server.port=80"

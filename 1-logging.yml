@@ -8,6 +8,13 @@ x-default-logging: &x-default-logging
 
 x-deploy-default: &x-deploy-default
   replicas: 1
+  resources:
+    limits:
+      cpus: "0.5"
+      memory: 200M
+    reservations:
+      cpus: "0.25"
+      memory: 128M
   update_config:
     parallelism: 1
     delay: 30s
