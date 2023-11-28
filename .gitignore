@@ -2,4 +2,4 @@
 .DS_Store
 ./olc
 .env
-plugins-local
+./plugins-local/*

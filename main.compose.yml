@@ -59,10 +59,11 @@ services:
 
       # TLS
       - --certificatesresolvers.leresolver.acme.httpchallenge=true
-      - --certificatesresolvers.leresolver.acme.email=email@sample-email-doesnt-exist1.me #Set your email address here, is for the generation of SSL certificates with Let's Encrypt. 
+      - --certificatesresolvers.leresolver.acme.email=${DOMAIN_CONTACT:?err}
       - --certificatesresolvers.leresolver.acme.storage=./acme.json
       - --certificatesresolvers.leresolver.acme.httpchallenge.entrypoint=web
-      # Uncomment the following line if you don't want to use the staging Let's Encrypt server before using the production one.
+      # IMPORTANT: Comment the following line if you don't want to use the staging Let's Encrypt server
+      # This is mostly useful for testing and avoid rate limiting. For production use, comment it.
       - --certificatesresolvers.leresolver.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory
 
       # Metrics
@@ -113,7 +114,7 @@ services:
       - "443:443"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - ./configs/acme.json:/acme.json"
+      - ./configs/acme.json:/acme.json
       - ./plugins-local:/plugins-local
     logging: *x-default-logging
 

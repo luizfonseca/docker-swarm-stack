@@ -58,15 +58,15 @@ services:
         target: /etc/otel-collector-config.yaml
     command:
       - --config=/etc/otel-collector-config.yaml
-    volumes:
-      - /var/run/docker.sock.raw:/var/run/docker.sock
     networks:
       - monitoring
     # ports:
     #   - "4317:4317"
     #   - "55679:55679"
     logging: *x-default-logging
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     deploy: 
       <<: *x-deploy-policy
       placement:
-        constraints: [node.platform.os == linux]
+        constraints: [node.role == manager]

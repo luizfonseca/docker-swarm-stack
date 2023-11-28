@@ -6,6 +6,8 @@ receivers:
       grpc:
 
   docker_stats:
+    endpoint: http://host.docker.internal:2376
+    api_version: 1.40
     collection_interval: 15s
     container_labels_to_metric_labels:
       com.docker.swarm.service.name: service
