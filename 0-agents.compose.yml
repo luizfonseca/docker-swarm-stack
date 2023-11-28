@@ -61,8 +61,6 @@ services:
       - "host.docker.internal:host-gateway"
     deploy: 
       <<: *x-deploy-policy
-      placement:
-        constraints: [node.role==manager]
 
   # otel-collector:
   #   image: otel/opentelemetry-collector-contrib:0.89.0
