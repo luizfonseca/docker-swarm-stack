@@ -62,7 +62,7 @@ services:
     deploy: 
       <<: *x-deploy-policy
       placement:
-        constraints: [node.role == manager]
+        constraints: [node.role==manager]
 
   # otel-collector:
   #   image: otel/opentelemetry-collector-contrib:0.89.0

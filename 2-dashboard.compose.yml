@@ -44,7 +44,7 @@ services:
         - "traefik.http.routers.grafana.middlewares=oauth-proxy"
       placement:
         constraints:
-          - node.role == manager
+          - node.role==manager
     logging: *x-default-logging
 
 

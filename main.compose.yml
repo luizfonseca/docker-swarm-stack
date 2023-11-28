@@ -88,7 +88,7 @@ services:
           memory: 96M
       placement:
         constraints:
-          - node.role == manager
+          - node.role==manager
       labels:
         # Makes traefik accessible from outside the swarm
         - "traefik.enable=false"
