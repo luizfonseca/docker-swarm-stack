@@ -23,9 +23,9 @@ scrape_configs:
     metrics_path: /metrics
     dns_sd_configs:
       - names:
-          - "tasks.otel-collector"
+          - "tasks.docker-metrics"
         type: "A"
-        port: 9444
+        port: 8080
 
   - job_name: node-exporter
     dns_sd_configs:

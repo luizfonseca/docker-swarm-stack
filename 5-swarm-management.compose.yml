@@ -53,11 +53,8 @@ services:
       mode: replicated
       resources:
         limits:
-          cpus: "0.5"
+          cpus: "0.3"
           memory: 128M
-        reservations:
-          cpus: "0.25"
-          memory: 64M
       replicas: 1
       placement:
         constraints:
