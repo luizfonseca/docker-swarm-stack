@@ -20,10 +20,6 @@ networks:
   traefik-metrics:
     external: true
 
-configs: 
-  acme.json:
-    file: ./configs/acme.json
-
 services:
   traefik:
     # Beware: traefik:v3 will have different properties
