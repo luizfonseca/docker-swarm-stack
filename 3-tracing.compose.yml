@@ -1,7 +1,10 @@
 version: "3.6"
 
 x-deploy: &x-deploy-default
-  mode: global
+  replicas: 1 # 1 in the manager node
+  placement:
+    constraints:
+      - node.role==manager
   resources:
     limits:
       cpus: "0.5"

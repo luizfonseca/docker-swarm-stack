@@ -74,7 +74,7 @@ services:
 
       # Tracing
       - --tracing.zipkin=true
-      - --tracing.zipkin.httpendpoint=http://tasks.tempo:9411/api/v2/spans
+      - --tracing.zipkin.httpendpoint=http://tempo:9411/api/v2/spans
       # - --tracing.jaeger.collector.endpoint=http://tasks.tempo:14268
       # - --tracing.jaeger.tracecontextheadername=traefik-trace-id
     deploy:

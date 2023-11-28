@@ -21,11 +21,11 @@ services:
     networks:
       - public
     deploy:
+      replicas: 1
       resources:
         limits:
           cpus: "1"
           memory: 512M
-      mode: global
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.registry.rule=Host(`registry${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}`)"

@@ -1,7 +1,7 @@
 version: "3.6"
 
 x-deploy-policy: &x-deploy-policy
-  mode: global
+  mode: global # 1 per node
   resources:
     limits:
       cpus: "0.5"

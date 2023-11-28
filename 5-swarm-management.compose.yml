@@ -32,9 +32,6 @@ services:
         limits:
           cpus: "0.5"
           memory: 64M
-        reservations:
-          cpus: "0.25"
-          memory: 32M
       placement:
         constraints: [node.platform.os == linux]
     logging: *x-default-logging
@@ -50,12 +47,12 @@ services:
       - portainer-data:/data
     logging: *x-default-logging
     deploy:
+      replicas: 1
       mode: replicated
       resources:
         limits:
           cpus: "0.3"
           memory: 128M
-      replicas: 1
       placement:
         constraints:
           - node.role==manager

@@ -37,6 +37,6 @@ scrape_configs:
   - job_name: tempo
     dns_sd_configs:
       - names:
-          - "tasks.tempo"
+          - "tempo"
         type: "A"
         port: 3200
