@@ -10,6 +10,8 @@
   - [Running locally](#running-locally)
   - [Github OAuth for protected services/routes](#github-oauth-for-protected-servicesroutes)
   - [Cloudflare DNS](#cloudflare-dns)
+  - [Next steps](#next-steps)
+  - [Screenshots](#screenshots)
 
 
 # OLC (One-Line _Self-Hosting_ Command)
@@ -56,6 +58,13 @@ If you are using `Ubuntu`, you can use the following link: https://docs.docker.c
 ## Usage
 
 - Clone this repository on the server (or download)
+```bash
+cd $HOME
+git clone https://github.com/luizfonseca/docker-swarm-stack.git
+
+cd ~/docker-swarm-stack
+```
+
 - Make sure you have a swarm initialized on the server. If not, run the following command:
 
 ```bash
@@ -77,28 +86,31 @@ make deploy
 There isn't much to configure in this stack. However, you can change most of the configuration through the `.env` file. Here is a list of the variables you can change:
 
 ```bash
-# The domain name you want to use for the stack. Locally you can use `localhost` or another name.
-# In production, you will need to point to the domain you bought/have.
-DOMAIN_NAME="example.com"
+# Some of the tools (like portainer or grafana) are behind an
+# oauth proxy server + credentials. You can create apps in the 
+# Developer settings of your github account.
+GITHUB_OAUTH_CLIENT_ID=YOUR_CLIENT_ID
+GITHUB_OAUTH_CLIENT_SECRET=YOUR_SECRET
 
-# The email address you want to use for Let's Encrypt. It's required in order to enable HTTPS.
-DOMAIN_CONTACT="your-email@provider.com"
+# Usernames authorized to interact with the admin dashboards
+GITHUB_USERNAME=<your-username>
 
-# Often some might try to figure out your domains by inspecting your DNS records. 
-# This stack will generate "friendly" domain names for your services at first, such as `grafana.subdomain.your-domain.com` or `portainer.subdomain.your-domain.com`.
-# If you want to obfuscate it, you can toggle this to true and it will generate random domain names for your services. E.g. `grafana-0befad.your-domain.com`. Not required.
-RANDOM_DOMAIN_NAMES=false
+# Domain configuration (used by traefik and letsencrypt)
+# Make sure your DNS records are pointing to your server
+# You will need DNS A records for 
+# - *.<subdomain>.your-domain.com 
+# - *.your-domain.com 
+# - your-domain.com
+DOMAIN_NAME=localhost
+DOMAIN_CONTACT=myemail@example.com
 
-
-# You can protected some routes with an extra layer of authentication using Github OAuth.
-# Meaning, for someone to access it they need to login with Github & the account needs to be whitelisted by you. 
-# It's recommended to create a PRIVATE app organization or a new account app just for this purpose.
-GITHUB_OAUTH_CLIENT_ID="<value>"
-GITHUB_OAUTH_CLIENT_SECRET="<value>"
-
-# The Github username you want to whitelist for the protected routes.
-# Users not matching this username will receive a 404 error.
-GITHUB_USERNAME="<username>"
+# When set, the script
+# will generate domain names using the suffix
+# So that users can't guess the domain names of your services
+# E.g. setting this to "0a1b2", portainer will be available at
+# http://portainer-0a1b2.example.com. 
+# Same for Grafana and the GH oauth app.
+DOMAIN_SUFFIX=""
 ```
 
 
@@ -155,3 +167,26 @@ make deploy
 If for some reason you are using Cloudflare DNS with proxying enabled for your domains, you will need to disable the **proxy first** so that letsencrypt can validate the domain. You can do that by clicking on the orange cloud icon next to the domain name in the DNS management panel.
 
 After emitting the certificates, you can enable the proxy again.
+
+
+## Next steps
+
+Althoug this is a functional stack, there are a few things that can be improved:
+
+- Dashboards for Grafana, with all the data sources configured
+- Dashboards for your logs, traces etc.
+- Long term storage for logs (e.g. S3)
+- Long term storage for metrics (e.g. Prometheus remote storage)
+- Alerting (e.g. Alertmanager)
+- Security, IP restrictions and so on.
+
+Long term storage is on the roadmap as soon as dashboards are ready.
+
+
+## Screenshots
+
+
+|  |  |
+| --- | --- |
+![image](./assets/command-output.png) | ![image](./assets/portainer.png) | 
+![image](./assets/grafana+loki.png) | ![image](./assets/grafana+tempo.png) |

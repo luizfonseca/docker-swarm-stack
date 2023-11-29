@@ -1,0 +1,82 @@
+# https://doc.traefik.io/traefik/routing/providers/docker/#configuration-examples
+
+global:
+  sendAnonymousUsage: false
+  checkNewVersion: false
+
+api:
+  debug: false
+  dashboard: false
+
+log:
+  level: INFO
+  format: json
+
+accessLog:
+  format: json
+  fields:
+    headers:
+      defaultMode: drop
+      names:
+        Cookie: redact
+        Authorization: redact
+        User-Agent: keep
+        X-Forwarded-For: keep
+        X-Real-Ip: keep
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: leresolver
+
+  # Prometheus scrape endpoint
+  metrics:
+    address: ":8082"
+
+certificatesResolvers:
+  leresolver:
+    acme:
+      email: '{{ env "DOMAIN_CONTACT" }}'
+      storage: ./acme.json
+      httpChallenge:
+        entryPoint: web
+      # comment the line below to trigger production Let's Encrypt (90 days expiration)
+      caServer: '{{ env "LETS_ENCRYPT_URL" }}'
+
+
+experimental:
+  plugins:
+    gh-oauth:
+      moduleName: github.com/luizfonseca/traefik-github-oauth-plugin
+      version: v0.3.2
+
+
+metrics:
+  prometheus:
+    buckets:
+      - 0.1
+      - 0.3
+      - 1.2
+      - 5.0
+    entryPoint: metrics # Creates a entrypoint that prometheus can scrape
+  
+
+providers:
+  docker:
+    swarmMode: true
+    exposedByDefault: false
+    network: public # Services that need to be exposed to the outside world should be in this network
+
+tracing:
+  zipkin:
+    httpEndpoint: http://tempo:9411/api/v2/spans

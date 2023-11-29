@@ -1,4 +1,4 @@
-version: "3.6"
+version: "3.8"
 
 x-deploy-policy: &x-deploy-policy
   mode: global # 1 per node
@@ -62,6 +62,7 @@ services:
     deploy: 
       <<: *x-deploy-policy
 
+  # Doesnt work well with docker swarm due to permissions against the docker.sock file.
   # otel-collector:
   #   image: otel/opentelemetry-collector-contrib:0.89.0
   #   configs:

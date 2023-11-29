@@ -1,4 +1,4 @@
-version: "3.6"
+version: "3.8"
 
 x-deploy: &x-deploy-default
   replicas: 1 # 1 in the manager node
@@ -75,11 +75,13 @@ services:
     deploy: *x-deploy-default
 
   prometheus:
-    image: prom/prometheus:v2.47.2
+    # image: prom/prometheus:v2.47.2
+    image: victoriametrics/victoria-metrics:v1.95.1
     command:
-      - --web.enable-remote-write-receiver
-      - --enable-feature=remote-write-receiver
-      - --config.file=/etc/prometheus/prometheus.yml
+      - -httpListenAddr=:9090
+      - -storageDataPath=/victoria-metrics-data
+      - -promscrape.config=/etc/prometheus/prometheus.yml
+      - -promscrape.config.strictParse=false # silently skip unsupported fields in prometheus.yml
     configs:
       - source: prometheus_config
         target: /etc/prometheus/prometheus.yml
@@ -90,6 +92,7 @@ services:
       - traefik-metrics
     volumes:
       - prometheus-data:/prometheus
+      - prometheus-data:/victoria-metrics-data
     logging: *x-default-logging
     deploy: *x-deploy-default
 

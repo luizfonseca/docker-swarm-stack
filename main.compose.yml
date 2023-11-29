@@ -1,10 +1,4 @@
-version: "3.6"
-
-
-# docker network create --scope swarm --driver=overlay --attachable public
-# docker network create --scope swarm --driver=overlay --attachable agent_network
-# docker network create --scope swarm --driver overlay --attachable monitoring
-# https://doc.traefik.io/traefik/routing/providers/docker/#configuration-examples
+version: "3.8"
 
 x-default-logging: &x-default-logging
   options:
@@ -20,63 +14,22 @@ networks:
   traefik-metrics:
     external: true
 
+
+configs:
+  traefik_config:
+    file: ./configs/traefik.yaml
+    template_driver: golang
+
+
 services:
   traefik:
     # Beware: traefik:v3 will have different properties
     image: "traefik:v2.10.5" 
     command:
-      # Access logging
-      - --accesslog=true
-      - --accesslog.format=json
-
-      # Default entrypoints (HTTP/HTTPs)
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entryPoints.web.http.redirections.entrypoint.scheme=https
-      - --entrypoints.websecure.http.tls.certresolver=leresolver
-      
-      # Swarm configuration
-      - --providers.docker=true
-      - --providers.docker.swarmmode=true
-      - --providers.docker.exposedbydefault=false
-      - --providers.docker.network=public
-
-      # Disable tracking
-      - --global.sendanonymoususage=false
-
-      # Traefik API
-      - --api=false
-      - --api.dashboard=false
-      - --log.level=INFO
-
-      # HTTP
-      - --providers.docker.httpclienttimeout=60
-
-      # TLS
-      - --certificatesresolvers.leresolver.acme.httpchallenge=true
-      - --certificatesresolvers.leresolver.acme.email=${DOMAIN_CONTACT:?err}
-      - --certificatesresolvers.leresolver.acme.storage=./acme.json
-      - --certificatesresolvers.leresolver.acme.httpchallenge.entrypoint=web
-      # IMPORTANT: Comment the following line if you don't want to use the staging Let's Encrypt server
-      # This is mostly useful for testing and avoid rate limiting. For production use, comment it.
-      - --certificatesresolvers.leresolver.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory
-
-      # Metrics
-      - --metrics.prometheus=true
-      - --metrics.prometheus.entryPoint=metrics
-      - --entryPoints.metrics.address=:8082
-      - --metrics.prometheus.buckets=0.1,0.3,1.2,5.0
-
-      # Plugins
-      - --experimental.plugins.gh-oauth.modulename=github.com/luizfonseca/traefik-github-oauth-plugin
-      - --experimental.plugins.gh-oauth.version=v0.3.1
-
-      # Tracing
-      - --tracing.zipkin=true
-      - --tracing.zipkin.httpendpoint=http://tempo:9411/api/v2/spans
-      # - --tracing.jaeger.collector.endpoint=http://tasks.tempo:14268
-      # - --tracing.jaeger.tracecontextheadername=traefik-trace-id
+      - --configfile=/etc/config/traefik.yml
+    configs:
+      - source: traefik_config
+        target: /etc/config/traefik.yml
     deploy:
       resources:
         limits:
@@ -86,19 +39,12 @@ services:
         constraints:
           - node.role==manager
       labels:
-        # Makes traefik accessible from outside the swarm
+        # Careful! Enabling this makes traefik accessible from outside the swarm.
         - "traefik.enable=false"
         # - "traefik.docker.lbswarm=true" # Load balances through the swarm 
         # - "traefik.http.routers.traefik.rule=Host(`traefik.local.tld`)"
         # - "traefik.http.routers.traefik.service=api@internal"
         # - "traefik.http.services.traefik.loadbalancer.server.port=8080"
-
-
-        # Middleware redirect
-
-        # # Ensure traefik is protected by basic auth
-        # - "traefik.http.routers.traefik.middlewares=authtraefik"
-        # - "traefik.http.middlewares.authtraefik.basicauth.users=admin:password" # user/password
     networks:
       - public
       - traefik-metrics
@@ -113,7 +59,7 @@ services:
 
   
   gh-oauth:
-    image: luizfonseca/traefik-github-oauth-server:0.3.1
+    image: luizfonseca/traefik-github-oauth-server:0.3.2
     environment:
       GITHUB_OAUTH_CLIENT_ID: "${GITHUB_OAUTH_CLIENT_ID:-notSet}"
       GITHUB_OAUTH_CLIENT_SECRET: "${GITHUB_OAUTH_CLIENT_SECRET:-notSet}"
@@ -127,15 +73,12 @@ services:
         limits:
           cpus: "0.1"
           memory: 30M
-        reservations:
-          cpus: "0.1"
-          memory: 10M
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.oauth-proxy.rule=Host(`gh-oauth${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}`)"
         - "traefik.http.routers.oauth-proxy.entrypoints=websecure"
         - "traefik.http.routers.oauth-proxy.tls.certresolver=leresolver"
 
-        # Container port/Service port
+        # Container port
         - "traefik.http.services.oauth-proxy.loadbalancer.server.port=80"
     logging: *x-default-logging
