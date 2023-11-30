@@ -37,8 +37,9 @@ services:
         
         - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
-        - "traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.apiBaseUrl=http://gh-oauth"
-        - "traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.whitelist.logins[0]=${GITHUB_USERNAME}"
+        - traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.apiBaseUrl=http://gh-oauth
+        - traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.whitelist.logins[0]=${GITHUB_USERNAME}
+        - traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.jwtsecretkey=${GITHUB_MIDDLEWARE_JWT_SECRET_KEY:?err}
 
         # Attach GH middleware
         - "traefik.http.routers.grafana.middlewares=oauth-proxy"

@@ -59,14 +59,14 @@ services:
       labels:
         # Frontend
         - "traefik.enable=true"
-        - "traefik.docker.lbswarm=true" # Load balances through the swarm 
         - "traefik.http.routers.portainer.rule=Host(`portainer${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}`)"
         - "traefik.http.routers.portainer.entrypoints=websecure"
         - "traefik.http.services.portainer.loadbalancer.server.port=9000"
 
         # Portainer is behind a GH auth proxy
-        - "traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.apiBaseUrl=http://gh-oauth"
-        - "traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.whitelist.logins[0]=${GITHUB_USERNAME}"
+        - traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.apiBaseUrl=http://gh-oauth
+        - traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.whitelist.logins[0]=${GITHUB_USERNAME}
+        - traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.jwtsecretkey=${GITHUB_MIDDLEWARE_JWT_SECRET_KEY:?err}
 
         # Attach GH middleware
         - "traefik.http.routers.portainer.middlewares=oauth-proxy"
