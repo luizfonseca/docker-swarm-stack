@@ -14,7 +14,7 @@ networks:
 
 services:
   portainer-agent:
-    image: portainer/agent:2.19.3-alpine
+    image: portainer/agent:2.19.4-alpine
     environment:
       # REQUIRED: Should be equal to the service name prefixed by "tasks." when
       # deployed inside an overlay network
@@ -37,7 +37,7 @@ services:
     logging: *x-default-logging
 
   portainer:
-    image: portainer/portainer-ce:2.19.3-alpine
+    image: portainer/portainer-ce:2.19.4-alpine
     command: -H tcp://tasks.portainer-agent:9001 --tlsskipverify
     networks:
       - public

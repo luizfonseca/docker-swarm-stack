@@ -50,7 +50,7 @@ configs:
 
 services:
   tempo:
-    image: grafana/tempo:2.3.0
+    image: grafana/tempo:2.4.1
     networks:
       - monitoring
       - traefik-metrics
@@ -75,7 +75,7 @@ services:
     deploy: *x-deploy-default
 
   prometheus:
-    image: prom/prometheus:v2.47.2
+    image: prom/prometheus:v2.51.1
     command:
       - --web.enable-remote-write-receiver
       - --enable-feature=remote-write-receiver

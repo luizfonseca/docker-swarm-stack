@@ -40,7 +40,7 @@ networks:
 
 services:
   loki:
-    image: grafana/loki:2.9.2
+    image: grafana/loki:2.9.6
     command:
      - -config.file=/etc/loki/loki-config.yaml # https://grafana.com/docs/loki/latest/configure/#limits_config
     volumes:
@@ -54,7 +54,7 @@ services:
     deploy: *x-deploy-default
 
   promtail:
-    image: grafana/promtail:2.9.2
+    image: grafana/promtail:2.9.6
     networks:
       - monitoring
     command: 
