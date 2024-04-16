@@ -35,7 +35,7 @@ services:
         - "traefik.http.services.registry.loadbalancer.server.port=5000"
     volumes:
       - registry-data:/var/lib/docker-registry
-      - ./config/htpasswd:/htpasswd
+      - ./configs/htpasswd:/htpasswd
     configs:
       - source: registry_config_2024_04_16
         target: /var/lib/registry/config.yml
