@@ -9,6 +9,8 @@ eval "$(
 )"
 echo "$(tput setaf 4)>> Deploying services$(tput sgr0)"
 
+echo "$(tput setaf 2)Setting the default password for your personal docker registry:$(tput sgr0)"
+echo $DOCKER_REGISTRY_PASSWORD | htpasswd -i -B -c configs/htpasswd $DOCKER_REGISTRY_USERNAME
 
 tput setaf 6 && docker stack deploy -c main.compose.yml -c 0-agents.compose.yml -c 1-logging.compose.yml -c 2-dashboard.compose.yml -c 3-tracing.compose.yml -c 4-registry.compose.yml -c 5-swarm-management.compose.yml olc
 

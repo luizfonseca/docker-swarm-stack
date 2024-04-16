@@ -3,3 +3,4 @@
 ./olc
 .env
 ./plugins-local/*
+configs/htpasswd
