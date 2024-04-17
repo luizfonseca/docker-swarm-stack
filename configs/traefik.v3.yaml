@@ -80,7 +80,8 @@ providers:
     exposedbydefault: false
     network: public
 
+# https://grafana.com/docs/agent/latest/flow/reference/components/otelcol.receiver.otlp/#http-block
 tracing:
   otlp:
     http:
-      endpoint: http://tempo:9411/api/v1/traces
+      endpoint: http://tempo:4318/api/v1/traces
