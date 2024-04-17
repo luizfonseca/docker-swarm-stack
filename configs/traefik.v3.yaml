@@ -1,0 +1,86 @@
+# https://doc.traefik.io/traefik/v3.0/reference/static-configuration/cli/
+
+global:
+  sendAnonymousUsage: false
+  checkNewVersion: false
+
+# api:
+#   debug: false
+#   dashboard: false
+
+log:
+  level: INFO
+  format: json
+
+accessLog:
+  format: json
+  fields:
+    headers:
+      defaultMode: drop
+      names:
+        Cookie: redact
+        Authorization: redact
+        User-Agent: keep
+        X-Forwarded-For: keep
+        X-Real-Ip: keep
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entrypoint:
+          permanent: true
+          to: websecure
+          scheme: https
+
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: leresolver
+    # transport:
+    #   keepalivemaxtime: 360
+
+  # Prometheus scrape endpoint
+  metrics:
+    address: ":8082"
+
+certificatesResolvers:
+  leresolver:
+    acme:
+      email: '{{ env "DOMAIN_CONTACT" }}'
+      storage: ./acme.json
+      httpChallenge:
+        entryPoint: web
+      # comment the line below to trigger production Let's Encrypt (90 days expiration)
+      caServer: '{{ env "LETS_ENCRYPT_URL" }}'
+
+
+experimental:
+  plugins:
+    gh-oauth:
+      moduleName: github.com/luizfonseca/traefik-github-oauth-plugin
+      version: v0.3.2
+
+
+metrics:
+  prometheus:
+    buckets:
+      - 0.1
+      - 0.3
+      - 1.2
+      - 5.0
+    entryPoint: metrics # Creates a entrypoint that prometheus can scrape
+  
+
+providers:
+  swarm:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedbydefault: false
+    network: public
+
+tracing:
+  otlp:
+    http:
+      endpoint: http://tempo:9411/api/v2/spans

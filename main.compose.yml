@@ -16,19 +16,23 @@ networks:
 
 
 configs:
-  traefik_config:
+  traefik_config: # v2 config
     file: ./configs/traefik.yaml
     template_driver: golang
+  traefik_v3_config:
+    file: ./configs/traefik.v3.yaml
+    template_driver: golang
+  
 
 
 services:
   traefik:
     # Beware: traefik:v3 will have different properties
-    image: "traefik:v2.10.5" 
+    image: "traefik:v3.0.0-rc5" 
     command:
       - --configfile=/etc/config/traefik.yml
     configs:
-      - source: traefik_config
+      - source: traefik_v3_config
         target: /etc/config/traefik.yml
     deploy:
       resources:
@@ -41,20 +45,6 @@ services:
       labels:
         # Careful! Enabling this makes traefik accessible from outside the swarm.
         - traefik.enable=false
-
-        # Enable swarm mode scaling
-        - autoscaler.enabled=true
-        - autoscaler.maxReplicas=10
-        - autoscaler.thresholds.cpu.percent=0.8
-        - autoscaler.thresholds.cpu.metric=average
-        - autoscaler.thresholds.cpu.duration=5m
-        - autoscaler.thresholds.cpu.scaleDownTimer=1m
-
-
-
-      
-
-        # - "traefik.docker.lbswarm=true" # Load balances through the swarm 
         # - "traefik.http.routers.traefik.rule=Host(`traefik.local.tld`)"
         # - "traefik.http.routers.traefik.service=api@internal"
         # - "traefik.http.services.traefik.loadbalancer.server.port=8080"
