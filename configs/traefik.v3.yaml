@@ -84,4 +84,4 @@ providers:
 tracing:
   otlp:
     http:
-      endpoint: http://tempo:4318/api/v1/traces
+      endpoint: http://tempo:4318/v1/traces

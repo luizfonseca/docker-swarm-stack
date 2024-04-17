@@ -19,7 +19,7 @@ configs:
   traefik_config: # v2 config
     file: ./configs/traefik.yaml
     template_driver: golang
-  traefik_v3_config-2024-04-18:
+  traefik_v3_config-2024-04-18-1:
     file: ./configs/traefik.v3.yaml
     template_driver: golang
   
@@ -32,7 +32,7 @@ services:
     command:
       - --configfile=/etc/config/traefik.yml
     configs:
-      - source: traefik_v3_config-2024-04-18
+      - source: traefik_v3_config-2024-04-18-1
         target: /etc/config/traefik.yml
     deploy:
       resources:
