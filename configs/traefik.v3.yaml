@@ -83,4 +83,4 @@ providers:
 tracing:
   otlp:
     http:
-      endpoint: http://tempo:9411/api/v2/spans
+      endpoint: http://tempo:9411/api/v1/traces

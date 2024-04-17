@@ -41,7 +41,7 @@ networks:
     external: true
 
 configs:
-  tempo_config:
+  tempo_config-2024-04-17:
     file: ./configs/tempo.yaml
   prometheus_config:
     file: ./configs/prometheus.yaml
@@ -55,7 +55,7 @@ services:
       - monitoring
       - traefik-metrics
     configs:
-      - source: tempo_config
+      - source: tempo_config-2024-04-17
         target: /etc/tempo.yaml
     command: 
       # - -target=scalable-single-binary
