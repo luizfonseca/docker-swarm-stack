@@ -21,6 +21,7 @@ services:
     image: registry:2.8.3
     networks:
       - public
+      - shared
     deploy:
       replicas: 1
       resources:

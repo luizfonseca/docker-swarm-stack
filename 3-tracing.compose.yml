@@ -8,7 +8,7 @@ x-deploy: &x-deploy-default
   resources:
     limits:
       cpus: "0.5"
-      memory: 200M
+      memory: 300M
   update_config:
     parallelism: 1
     delay: 30s

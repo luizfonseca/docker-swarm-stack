@@ -13,6 +13,13 @@ networks:
     external: true
   shared:
     external: true
+  caddy_controller:
+    driver: overlay
+    ipam:
+      driver: default
+      config:
+        - subnet: "10.200.200.0/24"
+
 
 volumes:
   caddy_data: {}
@@ -26,8 +33,8 @@ services:
     command: -c 'mkdir -p /data/caddy && /usr/bin/minio server /data --console-address ":9001"'
     environment:
       # change once logged in
-      MINIO_ROOT_USER: cluster-str
-      MINIO_ROOT_PASSWORD: cluster-secret
+      MINIO_ROOT_USER: ${MINIO_ROOT_USERNAME}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     networks:
       - shared
       - public
@@ -45,39 +52,36 @@ services:
         constraints:
           - node.role == manager
 
-  caddy:
+  # Caddy Controller pushes configuration to all Caddy instances in the swarm
+  # This way we are ensuring certificates and configs are synchronized across all nodes
+  caddy-controller:
     image: luizfonseca/caddy-proxy-with-plugins:v1.0.2
     environment:
-      - CADDY_INGRESS_NETWORKS=public
-    ports:
-      - 80:80
-      - 443:443
+      - CADDY_DOCKER_MODE=controller
+      - CADDY_CONTROLLER_NETWORK=10.200.200.0/24
     networks:
-      - public
       - shared
+      - caddy_controller
     deploy:
-      replicas: 2
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 64M
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
       update_config:
         parallelism: 1
         delay: 10s
         order: start-first
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - caddy_data:/data
     labels:
       # Set Storage definitions
       caddy_0.storage: s3
-      caddy_0.storage.host: minio:9000
+      caddy_0.storage.host: tasks.minio:9000
       caddy_0.storage.bucket: caddy
       caddy_0.storage.prefix: ssl
-      caddy_0.storage.access_id: cluster-str
-      caddy_0.storage.secret_key: cluster-secret
+      caddy_0.storage.access_id: ${MINIO_ROOT_USERNAME}
+      caddy_0.storage.secret_key: ${MINIO_ROOT_PASSWORD}
       caddy_0.storage.insecure: "true"
-
 
       caddy_1.servers.metrics: ""
       # auth portal using github https://github.com/authcrunch/authcrunch.github.io/blob/c6d02968980595021863c223369f9f6cb31992b6/assets/conf/oauth/github/Caddyfile
@@ -109,4 +113,31 @@ services:
       # creates an auth to hold the portal authentication
       caddy_4: gh-oauth${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}
       caddy_4.authenticate: with github_oauth
+
+  # Public Caddy swarm service, controlled by the Caddy Controller
+  caddy:
+    image: luizfonseca/caddy-proxy-with-plugins:v1.0.2
+    environment:
+      - CADDY_INGRESS_NETWORKS=public
+      - CADDY_DOCKER_MODE=server
+      - CADDY_CONTROLLER_NETWORK=10.200.200.0/24
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      - public
+      - shared
+      - caddy_controller
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 64M
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+    labels:
+      caddy_controlled_server:
     logging: *x-default-logging
