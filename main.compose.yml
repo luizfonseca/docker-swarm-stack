@@ -38,7 +38,7 @@ services:
     deploy:
       replicas: 1
       labels:
-        caddy: "minio${DOMAIN_PREFIX}.${DOMAIN_NAME:-localhost}"
+        caddy: "minio${DOMAIN_SUFFIX}.${DOMAIN_NAME:-localhost}"
         caddy.reverse_proxy: "{{ upstreams 9001 }}"
         caddy.authorize: with ghpolicy
       placement:
