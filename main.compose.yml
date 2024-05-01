@@ -21,10 +21,6 @@ networks:
         - subnet: "10.200.200.0/24"
 
 
-volumes:
-  caddy_data: {}
-  caddy_pg_data: {}
-
 services:
   minio:
     image: minio/minio:latest
@@ -138,6 +134,6 @@ services:
         parallelism: 1
         delay: 10s
         order: start-first
-    labels:
-      caddy_controlled_server:
+      labels:
+        caddy_controlled_server:
     logging: *x-default-logging
