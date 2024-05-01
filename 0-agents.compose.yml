@@ -50,17 +50,47 @@ services:
     logging: *x-default-logging
 
 
+  # docker-metrics:
+    # image: gcr.io/cadvisor/cadvisor:latest
+    # networks:
+    #   - monitoring
+    # # privileged: true
+    # #command:
+    # volumes:
+    #   - /:/rootfs:ro
+    #   - /var/run:/var/run:ro
+    #   - /sys:/sys:ro
+    #   - /var/lib/docker/:/var/lib/docker:ro
+    #   - /var/run/docker.sock:/var/run/docker.sock:ro
+    # deploy: *x-deploy-policy
+    # logging: *x-default-logging
+    # devices:
+    #   - /dev/kmsg:/dev/kmsg
+    #
+    #
+    #
   docker-metrics:
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: docker
+    volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+    entrypoint: ["/bin/sh","-c"]
     networks:
       - monitoring
-    # privileged: true
-    #command:
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    deploy: *x-deploy-policy
+    deploy:
+      mode: global
     logging: *x-default-logging
+    environment:
+      - PARENT={{.Task.Name}}
+      - CHILDNAME={{.Service.Name}}_sidecar.{{.Node.ID}}.{{.Task.ID}}
+    command:
+      - |
+        exec docker run -i --rm --network="container:$${PARENT}" \
+              --volume=/:/rootfs:ro \
+              --volume=/var/run:/var/run:ro  \
+              --volume=/sys:/sys:ro  \
+              --volume=/var/lib/docker/:/var/lib/docker:ro \
+              --volume=/dev/disk/:/dev/disk:ro \
+              --name $${CHILDNAME} \
+              --privileged \
+              --device=/dev/kmsg \
+              gcr.io/cadvisor/cadvisor:latest
