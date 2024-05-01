@@ -14,7 +14,7 @@ networks:
 
 services:
   portainer-agent:
-    image: portainer/agent:2.19.4-alpine
+    image: portainer/agent:2.20.1-alpine
     environment:
       # REQUIRED: Should be equal to the service name prefixed by "tasks." when
       # deployed inside an overlay network
@@ -37,7 +37,7 @@ services:
     logging: *x-default-logging
 
   portainer:
-    image: portainer/portainer-ce:2.19.4-alpine
+    image: portainer/portainer-ce:2.20.1-alpine
     command: -H tcp://tasks.portainer-agent:9001 --tlsskipverify
     networks:
       - public
@@ -57,18 +57,8 @@ services:
         constraints:
           - node.role==manager
       labels:
-        # Frontend
-        - "traefik.enable=true"
-        - "traefik.http.routers.portainer.rule=Host(`portainer${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}`)"
-        - "traefik.http.routers.portainer.entrypoints=websecure"
-        - "traefik.http.services.portainer.loadbalancer.server.port=9000"
-
-        # Portainer is behind a GH auth proxy
-        - traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.apiBaseUrl=http://gh-oauth
-        - traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.whitelist.logins[0]=${GITHUB_USERNAME}
-        - traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.jwtsecretkey=${GITHUB_MIDDLEWARE_JWT_SECRET_KEY:?err}
-
-        # Attach GH middleware
-        - "traefik.http.routers.portainer.middlewares=oauth-proxy"
+        caddy: "portainer${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}"
+        caddy.reverse_proxy: "{{upstreams 9000}}"
+        caddy.authorize: with ghpolicy
 volumes:
   portainer-data:

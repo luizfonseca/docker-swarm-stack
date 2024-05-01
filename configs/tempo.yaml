@@ -9,7 +9,7 @@ query_frontend:
     duration_slo: 5s
 
 distributor:
-  receivers:                           
+  receivers:
     # this configuration will listen on all ports and protocols that tempo is capable of.
     # the receives all come from the OpenTelemetry collector.  more configuration information can
     # be found there: https://github.com/open-telemetry/opentelemetry-collector/tree/main/receiver

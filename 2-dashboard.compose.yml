@@ -16,33 +16,23 @@ networks:
 
 services:
   grafana:
-    image: grafana/grafana:10.4.1
+    image: grafana/grafana:10.4.2
     networks:
       - public
       - monitoring
+      - shared
     volumes:
       - grafana-data:/var/lib/grafana
     deploy:
       resources:
         limits:
-          cpus: "0.5"
+          cpus: "0.25"
           memory: 200M
       replicas: 1
       labels:
-        - "traefik.enable=true"
-        - "traefik.docker.lbswarm=true" # Load balances through the swarm 
-        - "traefik.http.routers.grafana.rule=Host(`grafana${DOMAIN_SUFFIX}.${DOMAIN_NAME:-localhost}`)"
-        - "traefik.http.routers.grafana.entrypoints=websecure"
-        - "traefik.http.routers.grafana.tls.certresolver=leresolver"
-        
-        - "traefik.http.services.grafana.loadbalancer.server.port=3000"
-
-        - traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.apiBaseUrl=http://gh-oauth
-        - traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.whitelist.logins[0]=${GITHUB_USERNAME}
-        - traefik.http.middlewares.oauth-proxy.plugin.gh-oauth.jwtsecretkey=${GITHUB_MIDDLEWARE_JWT_SECRET_KEY:?err}
-
-        # Attach GH middleware
-        - "traefik.http.routers.grafana.middlewares=oauth-proxy"
+        caddy: "grafana${DOMAIN_SUFFIX}.${DOMAIN_NAME:-localhost}"
+        caddy.reverse_proxy: "{{upstreams 3000}}"
+        caddy.authorize: with ghpolicy
       placement:
         constraints:
           - node.role==manager

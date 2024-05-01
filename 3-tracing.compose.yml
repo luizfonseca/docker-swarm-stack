@@ -57,7 +57,7 @@ services:
     configs:
       - source: tempo_config-2024-04-17
         target: /etc/tempo.yaml
-    command: 
+    command:
       # - -target=scalable-single-binary
       - -config.file=/etc/tempo.yaml
     volumes:
@@ -75,10 +75,9 @@ services:
     deploy: *x-deploy-default
 
   prometheus:
-    image: prom/prometheus:v2.51.1
+    image: prom/prometheus:v2.51.2
     command:
       - --web.enable-remote-write-receiver
-      - --enable-feature=remote-write-receiver
       - --config.file=/etc/prometheus/prometheus.yml
     configs:
       - source: prometheus_config

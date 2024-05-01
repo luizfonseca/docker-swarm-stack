@@ -11,84 +11,102 @@ x-default-logging: &x-default-logging
 networks:
   public:
     external: true
-  traefik-metrics:
+  shared:
     external: true
 
-
-configs:
-  traefik_config: # v2 config
-    file: ./configs/traefik.yaml
-    template_driver: golang
-  traefik_v3_config-2024-04-18-1:
-    file: ./configs/traefik.v3.yaml
-    template_driver: golang
-  
-
+volumes:
+  caddy_data: {}
+  caddy_pg_data: {}
 
 services:
-  traefik:
-    # Beware: traefik:v3 will have different properties
-    image: "traefik:v3.0.0-rc5" 
-    command:
-      - --configfile=/etc/config/traefik.yml
-    configs:
-      - source: traefik_v3_config-2024-04-18-1
-        target: /etc/config/traefik.yml
+  minio:
+    image: minio/minio:latest
+    # restart: always
+    entrypoint: sh
+    command: -c 'mkdir -p /data/caddy && /usr/bin/minio server /data --console-address ":9001"'
+    environment:
+      # change once logged in
+      MINIO_ROOT_USER: cluster-str
+      MINIO_ROOT_PASSWORD: cluster-secret
+    networks:
+      - shared
+      - public
+    volumes:
+      - type: bind
+        source: ${HOME}/minio/data
+        target: /data
     deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 96M
+      replicas: 1
+      labels:
+        caddy: "minio${DOMAIN_PREFIX}.${DOMAIN_NAME:-localhost}"
+        caddy.reverse_proxy: "{{ upstreams 9001 }}"
+        caddy.authorize: with ghpolicy
       placement:
         constraints:
-          - node.role==manager
-      labels:
-        # Careful! Enabling this makes traefik accessible from outside the swarm.
-        - traefik.enable=false
-        # - "traefik.http.routers.traefik.rule=Host(`traefik.local.tld`)"
-        # - "traefik.http.routers.traefik.service=api@internal"
-        # - "traefik.http.services.traefik.loadbalancer.server.port=8080"
-    networks:
-      - public
-      - traefik-metrics
-    # Using `host` allows traefik to see the real client's IP
-    # If you are using a loadbalancer that provides it as a header, then you can probably 
-    # use `ingress` mode instead.
-    ports:
-      - target: 80
-        published: 80
-        mode: host
-      - target: 443
-        published: 443
-        mode: host
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - ./configs/acme.json:/acme.json
-      - ./plugins-local:/plugins-local
-    logging: *x-default-logging
+          - node.role == manager
 
-  
-  gh-oauth:
-    image: luizfonseca/traefik-github-oauth-server:0.3.2
+  caddy:
+    image: luizfonseca/caddy-proxy-with-plugins:v1.0.2
     environment:
-      GITHUB_OAUTH_CLIENT_ID: "${GITHUB_OAUTH_CLIENT_ID:-notSet}"
-      GITHUB_OAUTH_CLIENT_SECRET: "${GITHUB_OAUTH_CLIENT_SECRET:-notSet}"
-      # External URL
-      API_BASE_URL: "https://gh-oauth${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}"
+      - CADDY_INGRESS_NETWORKS=public
+    ports:
+      - 80:80
+      - 443:443
     networks:
       - public
+      - shared
     deploy:
-      replicas: 1        
+      replicas: 2
       resources:
         limits:
-          cpus: "0.1"
-          memory: 30M
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.oauth-proxy.rule=Host(`gh-oauth${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}`)"
-        - "traefik.http.routers.oauth-proxy.entrypoints=websecure"
-        - "traefik.http.routers.oauth-proxy.tls.certresolver=leresolver"
+          cpus: "0.5"
+          memory: 64M
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - caddy_data:/data
+    labels:
+      # Set Storage definitions
+      caddy_0.storage: s3
+      caddy_0.storage.host: minio:9000
+      caddy_0.storage.bucket: caddy
+      caddy_0.storage.prefix: ssl
+      caddy_0.storage.access_id: cluster-str
+      caddy_0.storage.secret_key: cluster-secret
+      caddy_0.storage.insecure: "true"
 
-        # Container port
-        - "traefik.http.services.oauth-proxy.loadbalancer.server.port=80"
+
+      caddy_1.servers.metrics: ""
+      # auth portal using github https://github.com/authcrunch/authcrunch.github.io/blob/c6d02968980595021863c223369f9f6cb31992b6/assets/conf/oauth/github/Caddyfile
+      caddy_2.order: authenticate before respond
+      caddy_2.order_0: authorize before basicauth
+
+      caddy_2.security.oauth: identity provider github ${GITHUB_OAUTH_CLIENT_ID:-notSet} ${GITHUB_OAUTH_CLIENT_SECRET:-notSet}
+      caddy_2.security.authentication: portal github_oauth
+
+      caddy_2.security.authentication.crypto: key sign-verify ${GITHUB_MIDDLEWARE_JWT_SECRET_KEY:-notSet}
+      caddy_2.security.authentication.cookie: domain ${DOMAIN_NAME:?err}
+      caddy_2.security.authentication.cookie_0: samesite strict
+      caddy_2.security.authentication.enable: identity provider github
+      caddy_2.security.authentication.transform: user
+      caddy_2.security.authentication.transform.match: realm github
+      caddy_2.security.authentication.transform.action: add role authp/visitor
+      caddy_2.security.authentication.transform_0: user
+      caddy_2.security.authentication.transform_0.match: sub github.com/${GITHUB_USERNAME:?err}
+      caddy_2.security.authentication.transform_0.action: add role authp/admin
+
+      caddy_2.security.authorization: policy ghpolicy
+      caddy_2.security.authorization.set: auth url https://gh-oauth${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}/oauth2/github
+      caddy_2.security.authorization.set_0: token sources cookie
+      caddy_2.security.authorization.crypto: key verify ${GITHUB_MIDDLEWARE_JWT_SECRET_KEY:-notSet}
+      caddy_2.security.authorization.allow: roles authp/admin
+      # caddy_2.security.authorization.validate: header bearer
+      # caddy_2.security.authorization.inject: header with claims
+
+      # creates an auth to hold the portal authentication
+      caddy_4: gh-oauth${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}
+      caddy_4.authenticate: with github_oauth
     logging: *x-default-logging

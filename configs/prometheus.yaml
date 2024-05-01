@@ -18,7 +18,7 @@ scrape_configs:
     static_configs:
       - targets:
         - traefik:8082
-  
+
   - job_name: otel-collector
     metrics_path: /metrics
     dns_sd_configs:

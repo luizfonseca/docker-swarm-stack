@@ -29,7 +29,7 @@ x-deploy-default: &x-deploy-default
 configs:
   loki_config:
     file: ./configs/loki.yaml
-  promtail_config:
+  promtail_config_2024_04_30_2:
     file: ./configs/promtail.yaml
 
 networks:
@@ -57,17 +57,20 @@ services:
     image: grafana/promtail:2.9.6
     networks:
       - monitoring
-    command: 
+    command:
       - -config.file=/etc/promtail/promtail.yaml
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/log:/var/log:ro
     configs:
-      - source: promtail_config
+      - source: promtail_config_2024_04_30_2
         target: /etc/promtail/promtail.yaml
     logging: *x-default-logging
-    deploy: *x-deploy-default
-
-
+    deploy:
+      mode: global
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 200M
 volumes:
   loki-data:

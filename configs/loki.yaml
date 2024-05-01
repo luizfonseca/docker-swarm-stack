@@ -81,4 +81,4 @@ querier:
   # You may want to adjust this up or down depending on your resource usage
   # (more available cpu and memory can tolerate higher values and vice versa),
   # but we find the most success running at around `16` with tsdb
-  max_concurrent: 4
+  max_concurrent: 3

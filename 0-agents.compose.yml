@@ -28,7 +28,7 @@ configs:
 
 services:
   node-exporter:
-    image: prom/node-exporter:v1.7.0
+    image: prom/node-exporter:v1.8.0
     environment:
       NODE_ID: "${NODE_ID:-{{.Node.ID}}}"
       NODE_NAME: "${NODE_NAME:-{{.Node.Hostname}}}"
@@ -49,36 +49,18 @@ services:
     deploy: *x-deploy-policy
     logging: *x-default-logging
 
+
   docker-metrics:
-    # https://github.com/0xERR0R/dex
-    image: spx01/dex:latest
+    image: gcr.io/cadvisor/cadvisor:latest
     networks:
       - monitoring
+    # privileged: true
+    #command:
     volumes:
-        - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    deploy: *x-deploy-policy
     logging: *x-default-logging
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    deploy: 
-      <<: *x-deploy-policy
-
-  # Doesnt work well with docker swarm due to permissions against the docker.sock file.
-  # otel-collector:
-  #   image: otel/opentelemetry-collector-contrib:0.89.0
-  #   configs:
-  #     - source: otel_config
-  #       target: /etc/otel-collector-config.yaml
-  #   command:
-  #     - --config=/etc/otel-collector-config.yaml
-  #   networks:
-  #     - monitoring
-  #   # ports:
-  #   #   - "4317:4317"
-  #   #   - "55679:55679"
-  #   logging: *x-default-logging
-  #   extra_hosts:
-  #     - "host.docker.internal:host-gateway"
-  #   deploy: 
-  #     <<: *x-deploy-policy
-  #     placement:
-  #       constraints: [node.role == manager]
