@@ -100,7 +100,7 @@ services:
       caddy_2.security.authentication.transform_0.action: add role authp/admin
 
       caddy_2.security.authorization: policy ghpolicy
-      caddy_2.security.authorization.set: auth url https://gh-oauth${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}/auth
+      caddy_2.security.authorization.set: auth url https://gh-oauth${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}
       caddy_2.security.authorization.set_0: token sources cookie
       caddy_2.security.authorization.crypto: key verify ${GITHUB_MIDDLEWARE_JWT_SECRET_KEY:-notSet}
       caddy_2.security.authorization.allow: roles authp/admin
