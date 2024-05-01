@@ -53,8 +53,8 @@ services:
   caddy-controller:
     image: luizfonseca/caddy-proxy-with-plugins:v1.0.2
     environment:
-      - CADDY_DOCKER_MODE=controller
-      - CADDY_CONTROLLER_NETWORK=10.200.200.0/24
+      CADDY_DOCKER_MODE: controller
+      CADDY_CONTROLLER_NETWORK: 10.200.200.0/24
     networks:
       - shared
       - caddy_controller
@@ -114,9 +114,9 @@ services:
   caddy:
     image: luizfonseca/caddy-proxy-with-plugins:v1.0.2
     environment:
-      - CADDY_INGRESS_NETWORKS=public
-      - CADDY_DOCKER_MODE=server
-      - CADDY_CONTROLLER_NETWORK=10.200.200.0/24
+      CADDY_INGRESS_NETWORKS: public
+      CADDY_DOCKER_MODE: server
+      CADDY_CONTROLLER_NETWORK: 10.200.200.0/24
     ports:
       - 80:80
       - 443:443
