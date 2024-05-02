@@ -37,9 +37,9 @@ scrape_configs:
         target_label: 'node'
       - source_labels: ['__meta_docker_container_label_com_docker_swarm_service_name']
         target_label: 'service'
-      - source_labels: ['.request.host']
+      - source_labels: ['request.host']
         target_label: 'http_host'
-      - source_labels: ['.request.method']
+      - source_labels: ['request.method']
         target_label: 'http_method'
     pipeline_stages:
       - static_labels:
