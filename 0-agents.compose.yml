@@ -49,23 +49,15 @@ services:
     deploy: *x-deploy-policy
     logging: *x-default-logging
 
-
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.99.0
-    configs:
-      - source: otel_config
-        target: /etc/otel-collector-config.yaml
-    command:
-      - --config=/etc/otel-collector-config.yaml
+  docker-metrics:
+    # https://github.com/0xERR0R/dex
+    image: spx01/dex:latest
     networks:
       - monitoring
-    # ports:
-    #   - "4317:4317"
-    #   - "55679:55679"
-    logging: *x-default-logging
     volumes:
-      - /var/run/docker.sock.raw:/var/run/docker.sock
+        - /var/run/docker.sock:/var/run/docker.sock:ro
+    logging: *x-default-logging
     extra_hosts:
       - "host.docker.internal:host-gateway"
     deploy:
-      mode: global
+      <<: *x-deploy-policy
