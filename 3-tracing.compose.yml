@@ -43,7 +43,7 @@ networks:
 configs:
   tempo_config-2024-04-17:
     file: ./configs/tempo.yaml
-  prometheus_config:
+  prometheus_config_2024_05_02:
     file: ./configs/prometheus.yaml
   prometheus_rules:
     file: ./configs/alert.rules
@@ -80,7 +80,7 @@ services:
       - --web.enable-remote-write-receiver
       - --config.file=/etc/prometheus/prometheus.yml
     configs:
-      - source: prometheus_config
+      - source: prometheus_config_2024_05_02
         target: /etc/prometheus/prometheus.yml
       - source: prometheus_rules
         target: /etc/prometheus/alert.rules

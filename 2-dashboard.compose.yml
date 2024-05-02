@@ -33,6 +33,7 @@ services:
         caddy: "grafana${DOMAIN_SUFFIX}.${DOMAIN_NAME:-localhost}"
         caddy.reverse_proxy: "{{upstreams 3000}}"
         caddy.authorize: with ghpolicy
+        caddy.log: "grafana"
       placement:
         constraints:
           - node.role==manager

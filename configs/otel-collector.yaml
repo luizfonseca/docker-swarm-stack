@@ -6,7 +6,7 @@ receivers:
       grpc:
 
   docker_stats:
-    endpoint: http://host.docker.internal:2376
+    endpoint: unix:///var/run/docker.sock
     collection_interval: 15s
     container_labels_to_metric_labels:
       com.docker.swarm.service.name: service
@@ -71,13 +71,13 @@ exporters:
     add_metric_suffixes: true
     resource_to_telemetry_conversion:
       enabled: true
-      
+
   # otlp:
   #   endpoint: tasks.otel-collector:9445
     # tls:
     #   insecure: true
 
-# resource and resource-detection processors allow decorating the metrics with host attributes  
+# resource and resource-detection processors allow decorating the metrics with host attributes
 service:
   pipelines:
     # logs:

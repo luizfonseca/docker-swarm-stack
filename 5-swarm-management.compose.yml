@@ -61,5 +61,6 @@ services:
         caddy: "portainer${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}"
         caddy.reverse_proxy: "{{upstreams 9000}}"
         caddy.authorize: with ghpolicy
+        caddy.log: "portainer"
 volumes:
   portainer-data:

@@ -50,47 +50,22 @@ services:
     logging: *x-default-logging
 
 
-  # docker-metrics:
-    # image: gcr.io/cadvisor/cadvisor:latest
-    # networks:
-    #   - monitoring
-    # # privileged: true
-    # #command:
-    # volumes:
-    #   - /:/rootfs:ro
-    #   - /var/run:/var/run:ro
-    #   - /sys:/sys:ro
-    #   - /var/lib/docker/:/var/lib/docker:ro
-    #   - /var/run/docker.sock:/var/run/docker.sock:ro
-    # deploy: *x-deploy-policy
-    # logging: *x-default-logging
-    # devices:
-    #   - /dev/kmsg:/dev/kmsg
-    #
-    #
-    #
-  docker-metrics:
-    image: docker
-    volumes:
-        - /var/run/docker.sock:/var/run/docker.sock
-    entrypoint: ["/bin/sh","-c"]
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.99.0
+    configs:
+      - source: otel_config
+        target: /etc/otel-collector-config.yaml
+    command:
+      - --config=/etc/otel-collector-config.yaml
     networks:
       - monitoring
+    # ports:
+    #   - "4317:4317"
+    #   - "55679:55679"
+    logging: *x-default-logging
+    volumes:
+      - /var/run/docker.sock.raw:/var/run/docker.sock
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     deploy:
       mode: global
-    logging: *x-default-logging
-    environment:
-      - PARENT={{.Task.Name}}
-      - CHILDNAME={{.Service.Name}}_sidecar.{{.Node.ID}}.{{.Task.ID}}
-    command:
-      - |
-        exec docker run -i --rm --network="container:$${PARENT}" \
-              --volume=/:/rootfs:ro \
-              --volume=/var/run:/var/run:ro  \
-              --volume=/sys:/sys:ro  \
-              --volume=/var/lib/docker/:/var/lib/docker:ro \
-              --volume=/dev/disk/:/dev/disk:ro \
-              --name $${CHILDNAME} \
-              --privileged \
-              --device=/dev/kmsg \
-              gcr.io/cadvisor/cadvisor:latest

@@ -44,9 +44,11 @@ services:
         caddy: "minio${DOMAIN_SUFFIX}.${DOMAIN_NAME:-localhost}"
         caddy.reverse_proxy: "{{ upstreams 9001 }}"
         caddy.authorize: with ghpolicy
+        caddy.log: "minio"
       placement:
         constraints:
           - node.role == manager
+    logging: *x-default-logging
 
   # Caddy Controller pushes configuration to all Caddy instances in the swarm
   # This way we are ensuring certificates and configs are synchronized across all nodes
@@ -67,6 +69,7 @@ services:
         parallelism: 1
         delay: 10s
         order: start-first
+    logging: *x-default-logging
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     labels:
@@ -110,6 +113,7 @@ services:
       # creates an auth to hold the portal authentication
       caddy_4: gh-oauth${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}
       caddy_4.authenticate: with github_oauth
+
 
   # Public Caddy swarm service, controlled by the Caddy Controller
   caddy:
