@@ -43,7 +43,7 @@ networks:
 configs:
   tempo_config-2024-04-17:
     file: ./configs/tempo.yaml
-  prometheus_config_2024_05_02:
+  prometheus_config_2024_05_03:
     file: ./configs/prometheus.yaml
   prometheus_rules:
     file: ./configs/alert.rules
@@ -80,13 +80,14 @@ services:
       - --web.enable-remote-write-receiver
       - --config.file=/etc/prometheus/prometheus.yml
     configs:
-      - source: prometheus_config_2024_05_02
+      - source: prometheus_config_2024_05_03
         target: /etc/prometheus/prometheus.yml
       - source: prometheus_rules
         target: /etc/prometheus/alert.rules
     networks:
       - monitoring
       - traefik-metrics
+      - shared
     volumes:
       - prometheus-data:/prometheus
     logging: *x-default-logging

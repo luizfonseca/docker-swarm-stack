@@ -29,7 +29,7 @@ x-deploy-default: &x-deploy-default
 configs:
   loki_config:
     file: ./configs/loki.yaml
-  promtail_config_2024_05_02_3:
+  promtail_config_2024_05_02_11:
     file: ./configs/promtail.yaml
 
 networks:
@@ -62,8 +62,9 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
     configs:
-      - source: promtail_config_2024_05_02_3
+      - source: promtail_config_2024_05_02_11
         target: /etc/promtail/promtail.yaml
     logging: *x-default-logging
     deploy:

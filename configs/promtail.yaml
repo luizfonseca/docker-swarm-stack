@@ -25,6 +25,7 @@ scrape_configs:
         __path__: /var/log/*.log
         type: "system"
 
+
   - job_name: docker
     docker_sd_configs:
       - host: unix:///var/run/docker.sock
@@ -37,12 +38,29 @@ scrape_configs:
         target_label: 'node'
       - source_labels: ['__meta_docker_container_label_com_docker_swarm_service_name']
         target_label: 'service'
-      - source_labels: ['request.host']
-        target_label: 'http_host'
-      - source_labels: ['request.method']
-        target_label: 'http_method'
+      - source_labels: ['__meta_docker_container_label_com_docker_stack_namespace']
+        target_label: 'stack'
+
     pipeline_stages:
       - static_labels:
           job: dockerlogs
           type: "docker"
           agent: promtail
+
+      # Parses CADDY
+      - json:
+          expressions:
+            log: log
+            http_host: request.host
+            http_path: request.path
+            http_method: request.method
+            http_status: status
+            http_duration: duration
+      - labels:
+          http_host:
+          http_path:
+          http_status:
+          http_method:
+          http_duration:
+      - output:
+          source: log
