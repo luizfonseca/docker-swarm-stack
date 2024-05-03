@@ -34,6 +34,7 @@ services:
         caddy.reverse_proxy: "{{upstreams 3000}}"
         caddy.authorize: with ghpolicy
         caddy.log: "grafana"
+        caddy.tracing.span: "grafana"
       placement:
         constraints:
           - node.role==manager

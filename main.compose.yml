@@ -113,6 +113,7 @@ services:
       # creates an auth to hold the portal authentication
       caddy_4: gh-oauth${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}
       caddy_4.authenticate: with github_oauth
+      caddy_4.tracing.span: github-oauth
 
 
   # Public Caddy swarm service, controlled by the Caddy Controller
@@ -122,6 +123,7 @@ services:
       CADDY_INGRESS_NETWORKS: public
       CADDY_DOCKER_MODE: server
       CADDY_CONTROLLER_NETWORK: 10.200.200.0/24
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://tasks.tempo:4317
     ports:
       - 80:80
       - 443:443

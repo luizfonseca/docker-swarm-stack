@@ -54,6 +54,7 @@ services:
     networks:
       - monitoring
       - traefik-metrics
+      - shared
     configs:
       - source: tempo_config-2024-04-17
         target: /etc/tempo.yaml
