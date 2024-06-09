@@ -29,9 +29,11 @@ services:
           cpus: "1"
           memory: 512M
       labels:
-        caddy: "registry${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}"
-        caddy.reverse_proxy: "{{ upstreams 5000 }}"
-        caddy.log: "docker-registry"
+        proksi.enabled: "true"
+        proksi.host: "registry${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}"
+        proksi.port: "5000"
+        proksi.ssl_certificate.self_signed_on_failure: "true"
+
     volumes:
       - registry-data:/var/lib/docker-registry
       - ./configs/htpasswd:/htpasswd

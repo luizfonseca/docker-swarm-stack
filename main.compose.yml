@@ -41,25 +41,49 @@ services:
     deploy:
       replicas: 1
       labels:
-        caddy: "minio${DOMAIN_SUFFIX}.${DOMAIN_NAME:-localhost}"
-        caddy.reverse_proxy: "{{ upstreams 9001 }}"
-        caddy.authorize: with ghpolicy
-        caddy.log: "minio"
+        # caddy: "minio${DOMAIN_SUFFIX}.${DOMAIN_NAME:-localhost}"
+        proksi.enabled: "true"
+        proksi.host: "minio${DOMAIN_SUFFIX}.${DOMAIN_NAME:-localhost}"
+        proksi.port: "9001"
+        proksi.ssl_certificate.self_signed_on_failure: "true"
+
+        proksi.plugins.oauth2.provider: "github"
+        proksi.plugins.oauth2.client_id: "${GITHUB_OAUTH_CLIENT_ID:-notSet}"
+        proksi.plugins.oauth2.client_secret: "${GITHUB_OAUTH_CLIENT_SECRET:-notSet}"
+        proksi.plugins.oauth2.jwt_secret: "${GITHUB_MIDDLEWARE_JWT_SECRET_KEY:-notSet}"
+        proksi.plugins.oauth2.validations: |
+          [ {  "type": "email", "value": ["${GITHUB_EMAIL:-notSet}"] } ]
+
       placement:
         constraints:
           - node.role == manager
     logging: *x-default-logging
 
-  # Caddy Controller pushes configuration to all Caddy instances in the swarm
-  # This way we are ensuring certificates and configs are synchronized across all nodes
-  caddy-controller:
-    image: luizfonseca/caddy-proxy-with-plugins:v1.0.2
-    environment:
-      CADDY_DOCKER_MODE: controller
-      CADDY_CONTROLLER_NETWORK: 10.200.200.0/24
+
+
+  proksi:
+    image: luizfonseca/proksi:latest
+    ports:
+      - "80:80"
+      - "443:443"
     networks:
+      - public
       - shared
-      - caddy_controller
+    environment:
+      PROKSI_LOGGING__LEVEL: "debug"
+      PROKSI_WORKER_THREADS: 2
+
+      PROKSI_DOCKER__ENABLED: "true"
+      PROKSI_DOCKER__MODE: "swarm"
+
+      PROKSI_LETS_ENCRYPT__ENABLED: "true"
+      PROKSI_LETS_ENCRYPT__STAGING: "true"
+      PROKSI_LETS_ENCRYPT__EMAIL: "contact@vigio.net"
+
+      PROKSI_PATHS__LETS_ENCRYPT: "/etc/proksi/certs"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/etc/proksi/certs
     deploy:
       replicas: 1
       placement:
@@ -69,78 +93,4 @@ services:
         parallelism: 1
         delay: 10s
         order: start-first
-    logging: *x-default-logging
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-    labels:
-      # Set Storage definitions
-      caddy_0.storage: s3
-      caddy_0.storage.host: tasks.minio:9000
-      caddy_0.storage.bucket: caddy
-      caddy_0.storage.prefix: ssl
-      caddy_0.storage.access_id: ${MINIO_ROOT_USERNAME}
-      caddy_0.storage.secret_key: ${MINIO_ROOT_PASSWORD}
-      caddy_0.storage.insecure: "true"
-
-      caddy_1.servers.metrics: ""
-      # auth portal using github https://github.com/authcrunch/authcrunch.github.io/blob/c6d02968980595021863c223369f9f6cb31992b6/assets/conf/oauth/github/Caddyfile
-      caddy_2.order: authenticate before respond
-      caddy_2.order_0: authorize before basicauth
-
-      caddy_2.security.oauth: identity provider github ${GITHUB_OAUTH_CLIENT_ID:-notSet} ${GITHUB_OAUTH_CLIENT_SECRET:-notSet}
-      caddy_2.security.authentication: portal github_oauth
-      caddy_2.security.authentication.crypto: key sign-verify ${GITHUB_MIDDLEWARE_JWT_SECRET_KEY:-notSet}
-      caddy_2.security.authentication.crypto_0: default token lifetime 259200
-      caddy_2.security.authentication.cookie: domain ${DOMAIN_NAME:?err}
-      caddy_2.security.authentication.cookie_0: samesite strict
-      caddy_2.security.authentication.cookie_1: lifetime 259200 # 3 days
-      caddy_2.security.authentication.enable: identity provider github
-      caddy_2.security.authentication.transform: user
-      caddy_2.security.authentication.transform.match: realm github
-      caddy_2.security.authentication.transform.action: add role authp/visitor
-      caddy_2.security.authentication.transform_0: user
-      caddy_2.security.authentication.transform_0.match: sub github.com/${GITHUB_USERNAME:?err}
-      caddy_2.security.authentication.transform_0.action: add role authp/admin
-
-      caddy_2.security.authorization: policy ghpolicy
-      caddy_2.security.authorization.set: auth url https://gh-oauth${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}
-      caddy_2.security.authorization.set_0: token sources cookie
-      caddy_2.security.authorization.crypto: key verify ${GITHUB_MIDDLEWARE_JWT_SECRET_KEY:-notSet}
-      caddy_2.security.authorization.allow: roles authp/admin
-      caddy_2.security.authorization.validate: source address
-      caddy_2.security.authorization.inject: headers with claims
-
-      # creates an auth to hold the portal authentication
-      caddy_4: gh-oauth${DOMAIN_SUFFIX}.${DOMAIN_NAME:?err}
-      caddy_4.authenticate: with github_oauth
-      caddy_4.tracing.span: github-oauth
-
-
-  # Public Caddy swarm service, controlled by the Caddy Controller
-  caddy:
-    image: luizfonseca/caddy-proxy-with-plugins:v1.0.2
-    environment:
-      CADDY_INGRESS_NETWORKS: public
-      CADDY_DOCKER_MODE: server
-      CADDY_CONTROLLER_NETWORK: 10.200.200.0/24
-      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://tasks.tempo:4317
-    ports:
-      - 80:80
-      - 443:443
-    networks:
-      - public
-      - shared
-      - caddy_controller
-    deploy:
-      replicas: 2
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 64M
-      update_config:
-        parallelism: 1
-        delay: 10s
-        order: start-first
-      labels:
-        caddy_controlled_server:
     logging: *x-default-logging

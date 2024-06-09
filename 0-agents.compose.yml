@@ -21,7 +21,7 @@ networks:
     attachable: true
 
 configs:
-  nodeexporter_entrypoint:
+  nodeexporter_entrypoint_2024_05_07:
     file: configs/node-exporter-entrypoint.sh
   otel_config:
     file: configs/otel-collector.yaml
@@ -33,7 +33,7 @@ services:
       NODE_ID: "${NODE_ID:-{{.Node.ID}}}"
       NODE_NAME: "${NODE_NAME:-{{.Node.Hostname}}}"
     configs:
-      - source: nodeexporter_entrypoint
+      - source: nodeexporter_entrypoint_2024_05_07
         target: /docker-entrypoint.sh
     command:
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
@@ -43,6 +43,7 @@ services:
       - monitoring
     volumes:
       - /:/rootfs:ro,rslave
+      - /etc/hostname:/etc/nodename
     entrypoint:
       - /bin/sh
       - /docker-entrypoint.sh

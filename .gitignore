@@ -4,3 +4,4 @@
 .env
 ./plugins-local/*
 configs/htpasswd
+data/*

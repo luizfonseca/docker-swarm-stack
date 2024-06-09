@@ -30,11 +30,19 @@ services:
           memory: 200M
       replicas: 1
       labels:
-        caddy: "grafana${DOMAIN_SUFFIX}.${DOMAIN_NAME:-localhost}"
-        caddy.reverse_proxy: "{{upstreams 3000}}"
-        caddy.authorize: with ghpolicy
-        caddy.log: "grafana"
-        caddy.tracing.span: "grafana"
+        proksi.enabled: "true"
+        proksi.host: "grafana${DOMAIN_SUFFIX}.${DOMAIN_NAME:-localhost}"
+        proksi.port: "3000"
+        proksi.ssl_certificate.self_signed_on_failure: "true"
+
+        proksi.plugins.oauth2.provider: "github"
+        proksi.plugins.oauth2.client_id: "${GITHUB_OAUTH_CLIENT_ID:-notSet}"
+        proksi.plugins.oauth2.client_secret: "${GITHUB_OAUTH_CLIENT_SECRET:-notSet}"
+        proksi.plugins.oauth2.jwt_secret: "${GITHUB_MIDDLEWARE_JWT_SECRET_KEY:-notSet}"
+        proksi.plugins.oauth2.validations: |
+          [ {  "type": "email", "value": ["${GITHUB_EMAIL:-notSet}"] } ]
+
+
       placement:
         constraints:
           - node.role==manager
